@@ -147,8 +147,12 @@ function validForm(){
 	if(!validate_range(document.form.log_port, 1, 65535))
 		return false;
 
-	if(document.form.http_passwd2.value.length > 0)
+	if(trim(document.form.http_username.value).length == 0){
 		alert("<#File_Pop_content_alert_desc1#>");
+		document.form.http_username.focus();
+		document.form.http_username.select();
+		return false;
+	}
 
 	if(reboot_schedule_support){
 		if(!document.form.reboot_date_x_Sun.checked && !document.form.reboot_date_x_Mon.checked &&
