@@ -86,7 +86,9 @@
  * Option descriptor structure.
  */
 
+#if !defined(__bool_true_false_are_defined) && !defined(bool) && (!defined(__STDC_VERSION__) || __STDC_VERSION__ < 202311L)
 typedef unsigned char	bool;
+#endif
 
 enum opt_type {
 	o_special_noarg = 0,

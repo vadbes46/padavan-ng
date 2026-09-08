@@ -922,7 +922,7 @@ uninstall-man: uninstall-man5 uninstall-man8
 export LIBDIR=$(libdir)/pptpd
 
 all-local:
-	for d in $(subdirs); do $(MAKE) $(MFLAGS) -C $$d all; done
+	for d in $(subdirs); do $(MAKE) $(MFLAGS) -C $$d CC="$(CC)" all; done
 
 install-exec-local:
 	for d in $(subdirs); do $(MAKE) $(MFLAGS) -C $$d prefix=$(prefix) DESTDIR=$(DESTDIR) install; done
