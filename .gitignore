@@ -1,0 +1,16 @@
+# IDE / Editor files
+.vscode/
+.idea/
+*.swp
+.*.swp
+*~
+
+# Toolchain build artifacts
+toolchain/dl/
+toolchain/out/
+toolchain/.build/
+toolchain/build.log
+
+# Firmware images
+*.trx
+*.bin

@@ -1,8 +1,11 @@
-# README #
+# padavan-ng (Fork) #
+
+> **Note:** This repository is a fork of the upstream [padavan-ng project by Sergey Hadzhioglu](https://gitlab.com/hadzhioglu/padavan-ng).
+> It includes compilation and build fixes for modern Linux distributions with GCC 14/15, C23 compatibility fixes, and improved repository hygiene.
 
 Welcome to the padavan-ng project
 
-This project aims to improve the supported devices on the software part, allowing power user to take full control over their hardware.
+This project aims to improve the supported devices on the software part, allowing power users to take full control over their hardware.
 This project was created in hope to be useful, but comes without warranty or support. Installing it will probably void your warranty.
 Contributors of this project are not responsible for what happens next. Flash at your own risk!
 
@@ -13,18 +16,82 @@ NOTE: if and when a possible interesting change will get added depends on a veri
 
 ### Compilation Instructions ###
 
-* Install dependencies
+#### 1. Install Dependencies
+
+Ubuntu Desktop 22.04 LTS or newer is recommended. When building on modern Linux distributions (e.g. Ubuntu 24.04 / 25.04 with host GCC 14/15), standard C compatibility flags are required (see Step 2).
 
 ```shell
-# I recommend building only on OS: Ubuntu Desktop 22.04.4 LTS (Jammy Jellyfish) and Before building the firmware, select "App Updates" and install them. Next, update the packages
 sudo apt update
 sudo apt upgrade
-sudo apt install autoconf autoconf-archive automake autopoint bison build-essential ca-certificates cmake cpio curl dos2unix doxygen fakeroot flex gawk gettext git gperf help2man htop kmod libarchive-tools libblkid-dev libc-ares-dev libcurl4-openssl-dev libdevmapper-dev libev-dev libevent-dev libexif-dev libflac-dev libgmp3-dev libid3tag0-dev libidn2-dev libjpeg-dev libkeyutils-dev libltdl-dev libmpc-dev libmpfr-dev libncurses5-dev libogg-dev libsqlite3-dev libssl-dev libsystemd-dev libtool libtool-bin libudev-dev libunbound-dev libvorbis-dev libxml2-dev locales mc nano pkg-config ppp-dev python3 python3-docutils sshpass texinfo unzip uuid uuid-dev vim wget xxd zlib1g-dev
-
+sudo apt install -y autoconf autoconf-archive automake autopoint bison build-essential ca-certificates cmake cpio curl dos2unix doxygen fakeroot flex gawk gettext git gperf help2man htop kmod libarchive-tools libblkid-dev libc-ares-dev libcurl4-openssl-dev libdevmapper-dev libev-dev libevent-dev libexif-dev libflac-dev libgmp3-dev libid3tag0-dev libidn2-dev libjpeg-dev libkeyutils-dev libltdl-dev libmpc-dev libmpfr-dev libncurses5-dev libogg-dev libsqlite3-dev libssl-dev libsystemd-dev libtool libtool-bin libudev-dev libunbound-dev libvorbis-dev libxml2-dev locales mc nano pkg-config ppp-dev python3 python3-docutils sshpass texinfo unzip uuid uuid-dev vim wget xxd zlib1g-dev
 ```
-[Automatic Padavan firmware builds using GitHub servers](https://github.com/shvchk/padavan-builder-workflow)
 
-[Автоматическая сборка прошивки Padavan на серверах GitHub](https://github.com/shvchk/padavan-builder-workflow/blob/main/README.ru.md)
+Automated build workflow reference: [Automatic Padavan firmware builds using GitHub servers](https://github.com/shvchk/padavan-builder-workflow).
+
+#### 2. Build the Cross-Compiler Toolchain
+
+> **IMPORTANT:** The cross-toolchain must be built **before** running the tree clean script (`./clear_tree.sh`) or building the firmware image. Otherwise, sub-makefiles will fail searching for `mipsel-linux-uclibc-gcc`.
+
+```shell
+cd toolchain
+./build_toolchain.sh
+```
+
+*Note for modern build hosts with GCC 14 / GCC 15:*  
+If the build fails during host GMP configuration (`too many arguments to function 'g'`), ensure the C standard compatibility flag is set in `toolchain/samples/mipsel-linux-uclibc/crosstool.config`:
+```ini
+CT_EXTRA_CFLAGS_FOR_HOST="-O2 -std=gnu17"
+```
+
+Once built, the cross-compiler will be located at:  
+`toolchain/out/bin/mipsel-linux-uclibc-gcc`
+
+#### 3. Board Configuration
+
+Navigate to the `trunk` directory and set up the target board configuration `.config`:
+
+```shell
+cd ../trunk
+# Copy the board template (e.g. Smart Box Pro with SPI flash mod):
+cp configs/templates/smartbox_pro.config .config
+```
+
+Or configure manually in `.config`:
+- `CONFIG_FIRMWARE_PRODUCT_ID="SMARTBOX_SPI"` (for Smart Box Pro with 16MB SPI flash mod)
+- Common packages:
+  - `CONFIG_FIRMWARE_INCLUDE_AMNEZIAWG=y`
+  - `CONFIG_FIRMWARE_INCLUDE_NFQWS=y` (Zapret)
+  - `CONFIG_FIRMWARE_INCLUDE_WIREGUARD=y`
+  - `CONFIG_FIRMWARE_INCLUDE_IPSET=y`
+  - `CONFIG_FIRMWARE_INCLUDE_STUBBY=y` / `CONFIG_FIRMWARE_INCLUDE_DOH=y`
+  - `CONFIG_FIRMWARE_INCLUDE_SHORTCUT_FE=y` (Hardware / Fast Path NAT)
+  - Disable bulky packages to conserve flash storage: `TRANSMISSION=n`, `ARIA=n`, `MINIDLNA=n`
+
+#### 4. Clean Tree and Build Firmware
+
+```shell
+cd trunk
+./clear_tree.sh
+./build_firmware.sh
+```
+
+#### 5. Verify Firmware Image Size
+
+The resulting firmware image will be placed in `trunk/images/`:
+
+```shell
+ls -lh images/*.trx
+```
+
+> **WARNING (Flash Memory Limit):**  
+> For devices with 16 MB SPI flash (e.g. W25Q128 SPI mod), the final `.trx` image size must be **strictly less than 15.43 MB (16,187,392 bytes)**. A fully loaded build with anti-censorship packages typically measures ~9.5–12.5 MB.
+
+#### 6. Flash Router via Web Interface
+
+1. Open the router Web GUI (e.g. `http://192.168.1.1/` or `http://192.168.10.1/`).
+2. Navigate to: **Administration** -> **Firmware Upgrade**.
+3. Select the compiled `.trx` file and start the upgrade.
+4. Wait for the router to reboot (~2–3 minutes). Existing NVRAM settings will be preserved.
 
 ### Firmware management ###
 ```shell 
@@ -36,41 +103,19 @@ WiFi name 2.4GHz: Padavan_2.4GHz
 WiFi name 5GHz: Padavan_5GHz
 WiFi Password 2.4/5GHz: 1234567890
 ```
-# Для желающих поддержать проект #
 
-Чтобы выразить благодарность и поддержать мою работу:
+# Support the Original Author #
 
-ЮMoney кошелёк 4100118647832050
+To express gratitude and support Sergey Hadzhioglu's work:
 
-Ссылка для быстрого пополнения https://yoomoney.ru/to/4100118647832050
+ЮMoney wallet: 4100118647832050  
+Link for quick replenishment: https://yoomoney.ru/to/4100118647832050  
+ЮMoney Virtual Card: 5599 0020 6991 1404  
+PrivatBank Virtual Card (UAH): 5169 3600 0910 4443  
+PrivatBank Virtual Card (USD): 5169 3600 0910 4385  
 
-ЮMoney виртуальная карта 5599 0020 6991 1404
-
-Виртуальная карта Приват Банка гривна: 5169 3600 0910 4443
-
-Виртуальная карта Приват Банка USD: 5169 3600 0910 4385
-
-Большое спасибо вам за вашу поддержку!
-
-Желаю всем добра, а так же Здоровья! Вы даёте мне возможоность жить и дышать! © by Sergey Hadzhioglu
-
-# For those who want to support the project #
-
-To express gratitude and support my work:
-
-ЮMoney wallet 4100118647832050
-
-Link for quick replenishment https://yoomoney.ru/to/4100118647832050
-
-ЮMoney Virtual Card 5599 0020 6991 1404
-
-Virtual Card Privat Bank UAH: 5169 3600 0910 4443
-
-Virtual Card Privat Bank USD: 5169 3600 0910 4385
-
-Thank you very much for your support!
-
-I wish you all the best, and also Health! You give me the opportunity to live and breathe! © by Sergey Hadzhioglu
+Thank you very much for your support!  
+*“I wish you all the best, and also Health! You give me the opportunity to live and breathe!”* © by Sergey Hadzhioglu
 
 <a href="https://imgbb.com/"><img src="https://i.ibb.co/4KRbrfM/maxresdefault.jpg" alt="maxresdefault" border="0"></a>
 

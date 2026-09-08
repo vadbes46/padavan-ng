@@ -47,7 +47,7 @@ PKG_CONFIG_SYSROOT_DIR = $(STAGEDIR)
 PKG_CONFIG_LIBDIR = $(PKG_CONFIG_SYSROOT_DIR)/lib
 PKG_CONFIG_PATH = $(PKG_CONFIG_LIBDIR)/pkgconfig
 
-FIRMWARE_MAXSIZE = $(shell awk '/"Firmware"/{ getline; getline; gsub(/,$$/,""); print strtonum($$2); }' $(BOARDDIR)/partitions.config)
+FIRMWARE_MAXSIZE := $(shell awk '/"Firmware"/{ getline; getline; gsub(/,$$/,""); print strtonum($$2); }' $(BOARDDIR)/partitions.config)
 
 #NUM MAKE PROCESS = CPU NUMBER IN THE SYSTEM * CPU_OVERLOAD
 CPU_OVERLOAD	= 1
@@ -58,6 +58,7 @@ CONFIG_SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
 	  else echo sh; fi ; fi)
 
 FIRMWARE_KERNEL_VER="3.4"
+CONFIG_TOOLCHAIN_DIR ?= $(ROOTDIR)/../toolchain/out
 CONFIG_CROSS_COMPILER_ROOT = ${CONFIG_TOOLCHAIN_DIR}
 CONFIG_CROSS_COMPILER_PATH = $(CONFIG_CROSS_COMPILER_ROOT)/bin
 KERNEL_HEADERS_PATH = $(CONFIG_CROSS_COMPILER_ROOT)/mipsel-linux-uclibc/sysroot/usr/include
