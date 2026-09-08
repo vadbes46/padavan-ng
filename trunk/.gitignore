@@ -80,6 +80,7 @@ user/samba36/samba-*/
 tools/lzma/7zip-*/
 tools/mksquashfs_xz/xz-*/
 linux-3.4.x/drivers/net/wireless/ralink/mt76x2/
+linux-3.4.x/drivers/net/wireless/ralink/mt76x3/
 
 # Package-specific build outputs & gnulib artifacts
 libs/libcurl/curl-*/*
@@ -105,3 +106,8 @@ user/parted/parted-*/po/POTFILES
 user/util-linux/util-linux-*/m4/*.m4
 user/util-linux/util-linux-*/po/Makevars.template
 tools/mksquashfs_xz/xz-*/po/Makevars.template
+user/mtd-utils/mtd-utils-*/tests/fs-tests/*.sh
+user/mtd-utils/mtd-utils-*/tests/fs-tests/stress/*.sh
+user/mtd-utils/mtd-utils-*/tests/ubi-tests/*.sh
+user/mtd-utils/mtd-utils-*/tests/ubifs_tools-tests/*.sh
+user/mtd-utils/mtd-utils-*/tests/ubifs_tools-tests/*/*.sh

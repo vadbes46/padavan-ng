@@ -33,3 +33,12 @@ make clean
 rm -rfv $ROOTDIR/romfs
 rm -rfv $ROOTDIR/images
 rm -rfv $ROOTDIR/stage
+
+if [ -d "$ROOTDIR/../.git" ]; then
+	echo "Restoring churned repository files..."
+	git -C "$ROOTDIR/.." restore .
+	# Ensure autotools generated files are newer than configure.ac/aclocal.m4 to prevent automake version mismatch on modern hosts
+	find "$ROOTDIR/libs" "$ROOTDIR/user" "$ROOTDIR/tools" -name "Makefile.in" -exec touch {} + 2>/dev/null || true
+	find "$ROOTDIR/libs" "$ROOTDIR/user" "$ROOTDIR/tools" -name "config.h.in" -exec touch {} + 2>/dev/null || true
+fi
+
