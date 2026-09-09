@@ -541,8 +541,12 @@ if [ "$CONFIG_FIRMWARE_INCLUDE_SHORTCUT_FE" = "y" ]; then
 fi
 ############################## NFQWS SUPPORT ##########################
 if [ "$CONFIG_FIRMWARE_INCLUDE_NFQWS" = "y" ] ; then
-	func_enable_kernel_param_as_m "CONFIG_NETFILTER_NETLINK_QUEUE"
-	func_enable_kernel_param_as_m "CONFIG_NETFILTER_XT_TARGET_NFQUEUE"
+	func_enable_kernel_param "CONFIG_NETFILTER_NETLINK"
+	func_enable_kernel_param "CONFIG_NETFILTER_NETLINK_QUEUE"
+	func_enable_kernel_param "CONFIG_NETFILTER_XT_TARGET_NFQUEUE"
+	func_enable_kernel_param "CONFIG_NETFILTER_XT_MATCH_CONNBYTES"
+	func_enable_kernel_param "CONFIG_IP_NF_MANGLE"
+	func_enable_kernel_param "CONFIG_IP6_NF_MANGLE"
 fi
 ############################## USB OVER IP ############################
 if [ "$CONFIG_FIRMWARE_INCLUDE_USBIP" = "y" ] ; then

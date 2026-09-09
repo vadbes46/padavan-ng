@@ -280,6 +280,9 @@ EOF
 ### Custom user script
 ### Called after internal iptables reconfig (firewall update)
 
+iptables -t mangle -C FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || iptables -t mangle -I FORWARD 1 -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
+iptables -C FORWARD -p udp --dport 443 -j REJECT --reject-with icmp-port-unreachable 2>/dev/null || iptables -I FORWARD 1 -p udp --dport 443 -j REJECT --reject-with icmp-port-unreachable
+
 EOF
 		chmod 755 "$script_postf"
 	fi

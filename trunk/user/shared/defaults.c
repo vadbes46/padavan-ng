@@ -509,7 +509,7 @@ struct nvram_pair router_defaults[] = {
 	{ "dhcp_dnsv6_x", "" },
 	{ "dhcp_wins_x", "" },
 	{ "redirect_all_dns", "0" },		/* Redirect all clients DNS requests */
-	{ "dhcp_filter_aaaa", "0" },
+	{ "dhcp_filter_aaaa", "1" },
 	{ "dhcp_all_servers", "1" },
 	{ "dhcp_strict_order", "0" },
 	{ "dhcp_stop_dns_rebind", "0" },
@@ -641,7 +641,8 @@ struct nvram_pair router_defaults[] = {
 	{ "stubby_opt", "" },
 #endif
 #if defined (APP_ZAPRET)
-	{ "zapret_enable", "0" },
+	{ "zapret_enable", "1" },
+	{ "zapret_strategy", "3" },
 	{ "zapret_iface", "" },
 	{ "zapret_log", "0" },
 	{ "zapret_clients", "192.168.1.0/24" },
