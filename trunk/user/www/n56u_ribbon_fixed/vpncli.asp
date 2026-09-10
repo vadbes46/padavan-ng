@@ -207,7 +207,9 @@ function validForm(){
 				document.form.vpnc_awg_jmin,
 				document.form.vpnc_awg_jmax,
 				document.form.vpnc_awg_s1,
-				document.form.vpnc_awg_s2
+				document.form.vpnc_awg_s2,
+				document.form.vpnc_awg_s3,
+				document.form.vpnc_awg_s4
 			];
 			for (var i = 0; i < awg_u16.length; i++) {
 				if (awg_u16[i].value.length > 0 && !validate_range(awg_u16[i], 0, 65535))
@@ -221,13 +223,29 @@ function validForm(){
 				document.form.vpnc_awg_h4
 			];
 			for (var j = 0; j < awg_u32.length; j++) {
-				if (awg_u32[j].value.length > 0 && !validate_range(awg_u32[j], 0, 4294967295))
-					return false;
+				if (awg_u32[j].value.length > 0) {
+					var val = awg_u32[j].value.trim();
+					if (val.indexOf('-') !== -1) {
+						var parts = val.split('-');
+						var n1 = Number(parts[0]);
+						var n2 = Number(parts[1]);
+						if (parts.length !== 2 || parts[0] === "" || parts[1] === "" || isNaN(n1) || isNaN(n2) ||
+						    n1 < 0 || n1 > 4294967295 || n2 < 0 || n2 > 4294967295 || n1 > n2) {
+							alert("Invalid range for H" + (j+1) + ". Expected min-max in [0..4294967295]");
+							awg_u32[j].focus();
+							awg_u32[j].select();
+							return false;
+						}
+					} else {
+						if (!validate_range(awg_u32[j], 0, 4294967295))
+							return false;
+					}
+				}
 			}
 
 			var i1_value = document.form.vpnc_awg_i1.value.trim();
-			if (i1_value.length > 0 && !/^<b\s*0x[0-9a-fA-F\s]+>?$/i.test(i1_value)) {
-				alert("Invalid I1 format. Expected '<b 0x...>'");
+			if (i1_value.length > 0 && !/^<.+>$/.test(i1_value)) {
+				alert("Invalid I1 format. Expected '<b 0x...>' or packet tag format");
 				document.form.vpnc_awg_i1.focus();
 				document.form.vpnc_awg_i1.select();
 				return false;
@@ -627,6 +645,88 @@ function wg_genpsk(){
 	});
 }
 
+function is_range(o, e) {
+	e = e || event;
+	if (is_control_key(e))
+		return true;
+	var keyPressed = e.keyCode ? e.keyCode : e.which;
+	if (keyPressed == 0)
+		return true;
+	if ((keyPressed >= 48 && keyPressed <= 57) || keyPressed == 45)
+		return true;
+	return false;
+}
+
+function extract_awg_config_from_json(json) {
+	var iniConfig = "";
+	var container = null;
+	if (json.containers && json.containers.length > 0) {
+		container = json.containers.find(function(c) { return c.container === "amnezia-awg2"; }) ||
+		            json.containers.find(function(c) { return c.container === "amnezia-awg"; }) ||
+		            json.containers.find(function(c) { return c.container === json.defaultContainer; }) ||
+		            json.containers[0];
+	}
+
+	if (container) {
+		var awg = container.awg || container["amnezia-awg"] || container["amnezia-awg2"] || container;
+		if (awg.last_config) {
+			try {
+				var parsedLast = JSON.parse(awg.last_config);
+				if (parsedLast.config)
+					iniConfig = parsedLast.config;
+			} catch(e) {
+				iniConfig = awg.last_config;
+			}
+		}
+	}
+
+	if (!iniConfig && json.last_config) {
+		try {
+			var parsedLast = JSON.parse(json.last_config);
+			if (parsedLast.config)
+				iniConfig = parsedLast.config;
+		} catch(e) {
+			iniConfig = json.last_config;
+		}
+	}
+
+	if (!iniConfig && container) {
+		var awg = container.awg || container["amnezia-awg"] || container["amnezia-awg2"] || container;
+		var lines = ["[Interface]"];
+		if (awg.client_ip || awg.subnet_address) lines.push("Address = " + (awg.client_ip || awg.subnet_address));
+		if (awg.client_priv_key) lines.push("PrivateKey = " + awg.client_priv_key);
+		if (json.dns1) lines.push("DNS = " + json.dns1 + (json.dns2 ? ", " + json.dns2 : ""));
+		if (awg.Jc) lines.push("Jc = " + awg.Jc);
+		if (awg.Jmin) lines.push("Jmin = " + awg.Jmin);
+		if (awg.Jmax) lines.push("Jmax = " + awg.Jmax);
+		if (awg.S1) lines.push("S1 = " + awg.S1);
+		if (awg.S2) lines.push("S2 = " + awg.S2);
+		if (awg.S3) lines.push("S3 = " + awg.S3);
+		if (awg.S4) lines.push("S4 = " + awg.S4);
+		if (awg.H1) lines.push("H1 = " + awg.H1);
+		if (awg.H2) lines.push("H2 = " + awg.H2);
+		if (awg.H3) lines.push("H3 = " + awg.H3);
+		if (awg.H4) lines.push("H4 = " + awg.H4);
+		if (awg.I1) lines.push("I1 = " + awg.I1);
+		lines.push("");
+		lines.push("[Peer]");
+		if (awg.server_pub_key) lines.push("PublicKey = " + awg.server_pub_key);
+		if (json.hostName && awg.port) lines.push("Endpoint = " + json.hostName + ":" + awg.port);
+		if (awg.allowed_ips) lines.push("AllowedIPs = " + (Array.isArray(awg.allowed_ips) ? awg.allowed_ips.join(", ") : awg.allowed_ips));
+		if (awg.persistent_keep_alive) lines.push("PersistentKeepalive = " + awg.persistent_keep_alive);
+		iniConfig = lines.join("\n");
+	}
+
+	if (iniConfig) {
+		if (json.dns1) iniConfig = iniConfig.replace(/\$PRIMARY_DNS/g, json.dns1);
+		if (json.dns2) iniConfig = iniConfig.replace(/\$SECONDARY_DNS/g, json.dns2);
+		iniConfig = iniConfig.replace(/,\s*\$SECONDARY_DNS/g, "").replace(/\$SECONDARY_DNS/g, "");
+		return iniConfig;
+	}
+
+	return "";
+}
+
 function wg_conf_import() {
 	const fileInput = document.getElementById('wg_fileInput');
 	const file = fileInput.files[0];
@@ -636,15 +736,67 @@ function wg_conf_import() {
 		return;
 	}
 
-	if (fileInput.files[0].size > 8192) {
-		alert("File is too big (max 8KB)");
+	if (fileInput.files[0].size > 65536) {
+		alert("File is too big (max 64KB)");
 		return;
 	}
 
 	const reader = new FileReader();
 
-	reader.onload = function(e) {
-		const content = e.target.result;
+	reader.onload = async function(e) {
+		var content = e.target.result;
+		if (typeof content !== "string")
+			return;
+
+		content = content.trim();
+
+		// Check if content contains Amnezia vpn:// URI
+		var vpnMatch = content.match(/vpn:\/\/[A-Za-z0-9_\-\+/=]+/);
+		if (vpnMatch) {
+			try {
+				var b64 = vpnMatch[0].substring(6).trim();
+				b64 = b64.replace(/-/g, '+').replace(/_/g, '/');
+				while (b64.length % 4) b64 += '=';
+
+				var binary = atob(b64);
+				var bytes = new Uint8Array(binary.length);
+				for (var k = 0; k < binary.length; k++) {
+					bytes[k] = binary.charCodeAt(k);
+				}
+				var compressed = bytes.subarray(4);
+
+				var decompressedText = null;
+				var fmts = ['deflate', 'deflate-raw'];
+				for (var f = 0; f < fmts.length; f++) {
+					try {
+						var ds = new DecompressionStream(fmts[f]);
+						var stream = new Response(compressed).body.pipeThrough(ds);
+						decompressedText = await new Response(stream).text();
+						if (decompressedText)
+							break;
+					} catch (err) {}
+				}
+
+				if (decompressedText) {
+					var json = JSON.parse(decompressedText);
+					var extracted = extract_awg_config_from_json(json);
+					if (extracted)
+						content = extracted;
+				}
+			} catch (err) {
+				console.error("Failed to parse vpn:// URI:", err);
+				alert("Failed to parse Amnezia vpn:// configuration: " + (err.message || err));
+				return;
+			}
+		} else if (content.startsWith("{")) {
+			try {
+				var json = JSON.parse(content);
+				var extracted = extract_awg_config_from_json(json);
+				if (extracted)
+					content = extracted;
+			} catch (err) {}
+		}
+
 		var iface = {};
 		var peer = {};
 		var section = "";
@@ -702,6 +854,8 @@ function wg_conf_import() {
 		document.form.vpnc_awg_jmax.value = "";
 		document.form.vpnc_awg_s1.value = "";
 		document.form.vpnc_awg_s2.value = "";
+		document.form.vpnc_awg_s3.value = "";
+		document.form.vpnc_awg_s4.value = "";
 		document.form.vpnc_awg_h1.value = "";
 		document.form.vpnc_awg_h2.value = "";
 		document.form.vpnc_awg_h3.value = "";
@@ -740,11 +894,19 @@ function wg_conf_import() {
 		if (iface.jmax) document.form.vpnc_awg_jmax.value = iface.jmax;
 		if (iface.s1) document.form.vpnc_awg_s1.value = iface.s1;
 		if (iface.s2) document.form.vpnc_awg_s2.value = iface.s2;
+		if (iface.s3) document.form.vpnc_awg_s3.value = iface.s3;
+		if (iface.s4) document.form.vpnc_awg_s4.value = iface.s4;
 		if (iface.h1) document.form.vpnc_awg_h1.value = iface.h1;
 		if (iface.h2) document.form.vpnc_awg_h2.value = iface.h2;
 		if (iface.h3) document.form.vpnc_awg_h3.value = iface.h3;
 		if (iface.h4) document.form.vpnc_awg_h4.value = iface.h4;
 		if (iface.i1) document.form.vpnc_awg_i1.value = iface.i1;
+
+		var has_awg = iface.jc || iface.jmin || iface.jmax || iface.s1 || iface.s2 || iface.s3 || iface.s4 || iface.h1 || iface.h2 || iface.h3 || iface.h4 || iface.i1;
+		if (has_awg && document.form.vpnc_type.value != "4") {
+			document.form.vpnc_type.value = "4";
+			change_vpnc_type();
+		}
 
 		try {
 			wg_pubkey();
@@ -1022,38 +1184,52 @@ function wg_conf_import() {
                                                 </td>
                                             </tr>
                                             <tr>
+                                                <th>S3:</th>
+                                                <td>
+                                                    <input type="text" name="vpnc_awg_s3" class="input" maxlength="5" size="32" value="<% nvram_get_x("", "vpnc_awg_s3"); %>" onKeyPress="return is_number(this,event);"/>
+                                                    &nbsp;<span class="hint-nowrap">[ 0..65535 ]</span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th>S4:</th>
+                                                <td>
+                                                    <input type="text" name="vpnc_awg_s4" class="input" maxlength="5" size="32" value="<% nvram_get_x("", "vpnc_awg_s4"); %>" onKeyPress="return is_number(this,event);"/>
+                                                    &nbsp;<span class="hint-nowrap">[ 0..65535 ]</span>
+                                                </td>
+                                            </tr>
+                                            <tr>
                                                 <th>H1:</th>
                                                 <td>
-                                                    <input type="text" name="vpnc_awg_h1" class="input" maxlength="10" size="32" value="<% nvram_get_x("", "vpnc_awg_h1"); %>" onKeyPress="return is_number(this,event);"/>
-                                                    &nbsp;<span class="hint-nowrap">[ 0..4294967295 ]</span>
+                                                    <input type="text" name="vpnc_awg_h1" class="input" maxlength="32" size="32" value="<% nvram_get_x("", "vpnc_awg_h1"); %>" onKeyPress="return is_range(this,event);"/>
+                                                    &nbsp;<span class="hint-nowrap">[ 0..4294967295 or min-max ]</span>
                                                 </td>
                                             </tr>
                                             <tr>
                                                 <th>H2:</th>
                                                 <td>
-                                                    <input type="text" name="vpnc_awg_h2" class="input" maxlength="10" size="32" value="<% nvram_get_x("", "vpnc_awg_h2"); %>" onKeyPress="return is_number(this,event);"/>
-                                                    &nbsp;<span class="hint-nowrap">[ 0..4294967295 ]</span>
+                                                    <input type="text" name="vpnc_awg_h2" class="input" maxlength="32" size="32" value="<% nvram_get_x("", "vpnc_awg_h2"); %>" onKeyPress="return is_range(this,event);"/>
+                                                    &nbsp;<span class="hint-nowrap">[ 0..4294967295 or min-max ]</span>
                                                 </td>
                                             </tr>
                                             <tr>
                                                 <th>H3:</th>
                                                 <td>
-                                                    <input type="text" name="vpnc_awg_h3" class="input" maxlength="10" size="32" value="<% nvram_get_x("", "vpnc_awg_h3"); %>" onKeyPress="return is_number(this,event);"/>
-                                                    &nbsp;<span class="hint-nowrap">[ 0..4294967295 ]</span>
+                                                    <input type="text" name="vpnc_awg_h3" class="input" maxlength="32" size="32" value="<% nvram_get_x("", "vpnc_awg_h3"); %>" onKeyPress="return is_range(this,event);"/>
+                                                    &nbsp;<span class="hint-nowrap">[ 0..4294967295 or min-max ]</span>
                                                 </td>
                                             </tr>
                                             <tr>
                                                 <th>H4:</th>
                                                 <td>
-                                                    <input type="text" name="vpnc_awg_h4" class="input" maxlength="10" size="32" value="<% nvram_get_x("", "vpnc_awg_h4"); %>" onKeyPress="return is_number(this,event);"/>
-                                                    &nbsp;<span class="hint-nowrap">[ 0..4294967295 ]</span>
+                                                    <input type="text" name="vpnc_awg_h4" class="input" maxlength="32" size="32" value="<% nvram_get_x("", "vpnc_awg_h4"); %>" onKeyPress="return is_range(this,event);"/>
+                                                    &nbsp;<span class="hint-nowrap">[ 0..4294967295 or min-max ]</span>
                                                 </td>
                                             </tr>
                                             <tr>
                                                 <th>I1:</th>
                                                 <td>
                                                     <input type="text" name="vpnc_awg_i1" class="input" maxlength="8192" size="32" value="<% nvram_get_x("", "vpnc_awg_i1"); %>"/>
-                                                    &nbsp;<span class="hint-nowrap">[ &lt;b 0x...&gt; ]</span>
+                                                    &nbsp;<span class="hint-nowrap">[ &lt;tags&gt; ]</span>
                                                 </td>
                                             </tr>
                                         </table>

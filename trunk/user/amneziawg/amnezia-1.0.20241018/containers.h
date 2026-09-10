@@ -6,9 +6,12 @@
 #ifndef CONTAINERS_H
 #define CONTAINERS_H
 
+#include "type.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <sys/socket.h>
 #include <net/if.h>
@@ -45,7 +48,7 @@ enum {
 	WGPEER_HAS_PUBLIC_KEY = 1U << 2,
 	WGPEER_HAS_PRESHARED_KEY = 1U << 3,
 	WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL = 1U << 4,
-	WGPEER_HAS_ADVANCED_SECURITY = 1U << 5
+	WGPEER_HAS_AWG = 1U << 5
 };
 
 struct wgpeer {
@@ -62,9 +65,9 @@ struct wgpeer {
 
 	struct timespec64 last_handshake_time;
 	uint64_t rx_bytes, tx_bytes;
-	uint16_t persistent_keepalive_interval;
+	u16_range_t persistent_keepalive_interval;
 
-	bool advanced_security;
+	bool awg;
 
 	struct wgallowedip *first_allowedip, *last_allowedip;
 	struct wgpeer *next_peer;
@@ -85,7 +88,22 @@ enum {
 	WGDEVICE_HAS_H2 = 1U << 11,
 	WGDEVICE_HAS_H3 = 1U << 12,
 	WGDEVICE_HAS_H4 = 1U << 13,
-	WGDEVICE_HAS_I1 = 1U << 14
+	WGDEVICE_HAS_S3 = 1U << 14,
+	WGDEVICE_HAS_S4 = 1U << 15,
+	WGDEVICE_HAS_I1 = 1U << 16,
+	WGDEVICE_HAS_I2 = 1U << 17,
+	WGDEVICE_HAS_I3 = 1U << 18,
+	WGDEVICE_HAS_I4 = 1U << 19,
+	WGDEVICE_HAS_I5 = 1U << 20,
+	WGDEVICE_HAS_HEADER_PROTECTION_KEY = 1U << 21,
+	WGDEVICE_HAS_CONTENT_PADDING_ADDITION = 1U << 22,
+	WGDEVICE_HAS_REKEY_AFTER_TIME = 1U << 23,
+	WGDEVICE_HAS_REKEY_TIMEOUT = 1U << 24,
+	WGDEVICE_HAS_REJECT_AFTER_TIME = 1U << 25,
+	WGDEVICE_HAS_KEEPALIVE_TIMEOUT = 1U << 26,
+	WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS = 1U << 27,
+	WGDEVICE_HAS_RANDOM_TRAILERS = 1U << 28,
+	WGDEVICE_HAS_DISABLE_COOKIES = 1U << 29,
 };
 
 struct wgdevice {
@@ -107,13 +125,15 @@ struct wgdevice {
 	uint16_t junk_packet_max_size;
 	uint16_t init_packet_junk_size;
 	uint16_t response_packet_junk_size;
-	uint32_t init_packet_magic_header;
-	uint32_t response_packet_magic_header;
-	uint32_t underload_packet_magic_header;
-	uint32_t transport_packet_magic_header;
-
-	uint16_t i1_len;
-	uint8_t *i1_bytes;
+	uint16_t cookie_reply_packet_junk_size;
+	uint16_t transport_packet_junk_size;
+	u32_range_t init_header, resp_header, cookie_header, transport_header;
+	u16_range_t content_padding_addition, rekey_after_time,
+		rekey_timeout, reject_after_time, keepalive_timeout,
+		max_handshake_attempts;
+	uint8_t header_protection_key[WG_KEY_LEN];
+	char *i1, *i2, *i3, *i4, *i5;
+	bool random_trailers, disable_cookies;
 };
 
 #define for_each_wgpeer(__dev, __peer) for ((__peer) = (__dev)->first_peer; (__peer); (__peer) = (__peer)->next_peer)
@@ -128,9 +148,12 @@ static inline void free_wgdevice(struct wgdevice *dev)
 			free(allowedip);
 		free(peer);
 	}
-	free(dev->i1_bytes);
-	dev->i1_bytes = NULL;
-	dev->i1_len = 0;
+
+	free(dev->i1);
+	free(dev->i2);
+	free(dev->i3);
+	free(dev->i4);
+	free(dev->i5);
 	free(dev);
 }
 

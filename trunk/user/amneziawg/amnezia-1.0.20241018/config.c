@@ -19,8 +19,15 @@
 #include "ipc.h"
 #include "encoding.h"
 #include "ctype.h"
+#include "type.h"
 
 #define COMMENT_CHAR '#'
+
+// Keys that should be not stripped of whitespace
+static const char *awg_special_handshake_keys[] = {
+	"I1", "I2", "I3", "I4", "I5",
+	NULL
+};
 
 static const char *get_value(const char *line, const char *key)
 {
@@ -32,6 +39,7 @@ static const char *get_value(const char *line, const char *key)
 
 	if (strncasecmp(line, key, keylen))
 		return NULL;
+
 
 	return line + keylen;
 }
@@ -279,32 +287,6 @@ static inline bool parse_endpoint(struct sockaddr *endpoint, const char *value)
 	return true;
 }
 
-static inline bool parse_persistent_keepalive(uint16_t *interval, uint32_t *flags, const char *value)
-{
-	unsigned long ret;
-	char *end;
-
-	if (!strcasecmp(value, "off")) {
-		*interval = 0;
-		*flags |= WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL;
-		return true;
-	}
-
-	if (!char_is_digit(value[0]))
-		goto err;
-
-	ret = strtoul(value, &end, 10);
-	if (*end || ret > 65535)
-		goto err;
-
-	*interval = (uint16_t)ret;
-	*flags |= WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL;
-	return true;
-err:
-	fprintf(stderr, "Persistent keepalive interval is neither 0/off nor 1-65535: `%s'\n", value);
-	return false;
-}
-
 static bool validate_netmask(struct wgallowedip *allowedip)
 {
 	uint32_t *ip;
@@ -416,7 +398,7 @@ static inline bool parse_uint16(uint16_t *device_value, const char *name, const 
 		fprintf(stderr, "Unable to parse empty string\n");
 		return false;
 	}
-	
+
 	char *end;
 	uint32_t ret;
 	ret = strtoul(value, &end, 10);
@@ -426,24 +408,6 @@ static inline bool parse_uint16(uint16_t *device_value, const char *name, const 
 		exit(1);
 	}
 	*device_value = (uint16_t)ret;
-	return true;
-}
-
-static inline bool parse_uint32(uint32_t *device_value, const char *name, const char *value) {
-
-	if (!strlen(value)) {
-		fprintf(stderr, "Unable to parse empty string\n");
-		return false;
-	}
-
-	char *end;
-	uint64_t ret;
-	ret = strtoul(value, &end, 10);
-	if (*end || ret > UINT32_MAX) {
-		fprintf(stderr, "Unable to parse %s: `%s'\n", name, value);
-		exit(1);
-	}
-	*device_value = (uint32_t)ret;
 	return true;
 }
 
@@ -480,94 +444,6 @@ static inline bool parse_bool(bool *device_value, const char *name, const char *
 err:
 	fprintf(stderr, "Boolean value is neither on/off nor 0/1: `%s'\n", value);
 	return false;
-}
-
-static inline int hexval(char c)
-{
-    if (c >= '0' && c <= '9') return c - '0';
-    if (c >= 'a' && c <= 'f') return c - 'a' + 10;
-    if (c >= 'A' && c <= 'F') return c - 'A' + 10;
-    return -1;
-}
-
-/* Parses: "<b 0x....>" or "<b0x....>" into bytes */
-static inline bool parse_i1_tag(uint8_t **out, uint16_t *out_len, const char *value)
-{
-    const char *p = value;
-
-    if (!value || !strlen(value)) {
-	fprintf(stderr, "Unable to parse empty I1\n");
-	return false;
-    }
-
-    while (*p && char_is_space(*p)) p++;
-
-    if (strncasecmp(p, "<b", 2) != 0) {
-	fprintf(stderr, "I1 must start with '<b': `%s'\n", value);
-	return false;
-    }
-    p += 2;
-    while (*p && char_is_space(*p)) p++;
-
-    if (!(p[0] == '0' && (p[1] == 'x' || p[1] == 'X'))) {
-	fprintf(stderr, "I1 must contain 0x...: `%s'\n", value);
-	return false;
-    }
-    p += 2;
-
-    /* stop at '>' if present, otherwise until end of string */
-    const char *end = strchr(p, '>');
-    if (!end)
-	end = p + strlen(p);
-
-    /* count hex digits (ignore spaces) */
-    size_t hexlen = 0;
-    for (const char *q = p; q < end; q++) {
-	if (char_is_space(*q))
-	    continue;
-	if (hexval(*q) < 0) {
-	    fprintf(stderr, "I1 invalid hex char `%c` in `%s'\n", *q, value);
-	    return false;
-	}
-	hexlen++;
-    }
-
-    if (hexlen == 0 || (hexlen & 1)) {
-	fprintf(stderr, "I1 hex length must be even and non-zero: `%s'\n", value);
-	return false;
-    }
-
-    size_t blen = hexlen / 2;
-    if (blen > UINT16_MAX) {
-	fprintf(stderr, "I1 too large (%zu bytes)\n", blen);
-	return false;
-    }
-
-    uint8_t *buf = malloc(blen);
-    if (!buf) {
-	perror("malloc");
-	return false;
-    }
-
-    size_t bi = 0;
-    int hi = -1;
-    for (const char *q = p; q < end; q++) {
-	if (char_is_space(*q))
-	    continue;
-	int v = hexval(*q);
-	if (hi < 0)
-	    hi = v;
-	else {
-	    buf[bi++] = (uint8_t)((hi << 4) | v);
-	    hi = -1;
-	}
-    }
-
-    /* replace previous */
-    free(*out);
-    *out = buf;
-    *out_len = (uint16_t)blen;
-    return true;
 }
 
 static bool process_line(struct config_ctx *ctx, const char *line)
@@ -630,28 +506,84 @@ static bool process_line(struct config_ctx *ctx, const char *line)
 			ret = parse_uint16(&ctx->device->response_packet_junk_size, "S2", value);
 			if (ret)
 				ctx->device->flags |= WGDEVICE_HAS_S2;
+		} else if (key_match("S3")) {
+			ret = parse_uint16(&ctx->device->cookie_reply_packet_junk_size, "S3", value);
+			if (ret)
+				ctx->device->flags |= WGDEVICE_HAS_S3;
+		} else if (key_match("S4")) {
+			ret = parse_uint16(&ctx->device->transport_packet_junk_size, "S4", value);
+			if (ret)
+				ctx->device->flags |= WGDEVICE_HAS_S4;
 		} else if (key_match("H1")) {
-			ret = parse_uint32(&ctx->device->init_packet_magic_header, "H1", value);
+			ret = u32_range_from_string(&ctx->device->init_header, value);
 			if (ret)
 				ctx->device->flags |= WGDEVICE_HAS_H1;
 		} else if (key_match("H2")) {
-			ret = parse_uint32(&ctx->device->response_packet_magic_header, "H2", value);
+			ret = u32_range_from_string(&ctx->device->resp_header, value);
 			if (ret)
 				ctx->device->flags |= WGDEVICE_HAS_H2;
 		} else if (key_match("H3")) {
-			ret = parse_uint32(&ctx->device->underload_packet_magic_header, "H3", value);
+			ret = u32_range_from_string(&ctx->device->cookie_header, value);
 			if (ret)
 				ctx->device->flags |= WGDEVICE_HAS_H3;
 		} else if (key_match("H4")) {
-			ret = parse_uint32(&ctx->device->transport_packet_magic_header, "H4", value);
+			ret = u32_range_from_string(&ctx->device->transport_header, value);
 			if (ret)
 				ctx->device->flags |= WGDEVICE_HAS_H4;
 		} else if (key_match("I1")) {
-			ret = parse_i1_tag(&ctx->device->i1_bytes, &ctx->device->i1_len, value);
-			if (ret)
+			if ((ctx->device->i1 = strdup(value)) != NULL)
 				ctx->device->flags |= WGDEVICE_HAS_I1;
-		} else
+		} else if (key_match("I2")) {
+			if ((ctx->device->i2 = strdup(value)) != NULL)
+				ctx->device->flags |= WGDEVICE_HAS_I2;
+		} else if (key_match("I3")) {
+			if ((ctx->device->i3 = strdup(value)) != NULL)
+				ctx->device->flags |= WGDEVICE_HAS_I3;
+		} else if (key_match("I4")) {
+			if ((ctx->device->i4 = strdup(value)) != NULL)
+				ctx->device->flags |= WGDEVICE_HAS_I4;
+		} else if (key_match("I5")) {
+			if ((ctx->device->i5 = strdup(value)) != NULL)
+				ctx->device->flags |= WGDEVICE_HAS_I5;
+		} else if (key_match("HeaderProtectionKey")) {
+			ret = parse_key(ctx->device->header_protection_key, value);
+			if (ret)
+				ctx->device->flags |= WGDEVICE_HAS_HEADER_PROTECTION_KEY;
+		} else if (key_match("ContentPaddingAddition")) {
+			ret = u16_range_from_string(&ctx->device->content_padding_addition, value);
+			if (ret)
+				ctx->device->flags |= WGDEVICE_HAS_CONTENT_PADDING_ADDITION;
+		} else if (key_match("RekeyAfterTime")) {
+			ret = u16_range_from_string(&ctx->device->rekey_after_time, value);
+			if (ret)
+				ctx->device->flags |= WGDEVICE_HAS_REKEY_AFTER_TIME;
+		} else if (key_match("RekeyTimeout")) {
+			ret = u16_range_from_string(&ctx->device->rekey_timeout, value);
+			if (ret)
+				ctx->device->flags |= WGDEVICE_HAS_REKEY_TIMEOUT;
+		} else if (key_match("RejectAfterTime")) {
+			ret = u16_range_from_string(&ctx->device->reject_after_time, value);
+			if (ret)
+				ctx->device->flags |= WGDEVICE_HAS_REJECT_AFTER_TIME;
+		} else if (key_match("KeepaliveTimeout")) {
+			ret = u16_range_from_string(&ctx->device->keepalive_timeout, value);
+			if (ret)
+				ctx->device->flags |= WGDEVICE_HAS_KEEPALIVE_TIMEOUT;
+		} else if (key_match("MaxHandshakeAttempts")) {
+			ret = u16_range_from_string(&ctx->device->max_handshake_attempts, value);
+			if (ret)
+				ctx->device->flags |= WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS;
+		} else if (key_match("RandomTrailers")) {
+			ret = parse_bool(&ctx->device->random_trailers, "RandomTrailers", value);
+			if (ret)
+				ctx->device->flags |= WGDEVICE_HAS_RANDOM_TRAILERS;
+		} else if (key_match("DisableCookies")) {
+			ret = parse_bool(&ctx->device->disable_cookies, "DisableCookies", value);
+			if (ret)
+				ctx->device->flags |= WGDEVICE_HAS_DISABLE_COOKIES;
+		} else {
 			goto error;
+		}
 	} else if (ctx->is_peer_section) {
 		if (key_match("Endpoint"))
 			ret = parse_endpoint(&ctx->last_peer->endpoint.addr, value);
@@ -661,16 +593,18 @@ static bool process_line(struct config_ctx *ctx, const char *line)
 				ctx->last_peer->flags |= WGPEER_HAS_PUBLIC_KEY;
 		} else if (key_match("AllowedIPs"))
 			ret = parse_allowedips(ctx->last_peer, &ctx->last_allowedip, value);
-		else if (key_match("PersistentKeepalive"))
-			ret = parse_persistent_keepalive(&ctx->last_peer->persistent_keepalive_interval, &ctx->last_peer->flags, value);
-		else if (key_match("PresharedKey")) {
+		else if (key_match("PersistentKeepalive")) {
+			ret = u16_range_from_string(&ctx->last_peer->persistent_keepalive_interval, value);
+			if (ret)
+				ctx->last_peer->flags |= WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL;
+		} else if (key_match("PresharedKey")) {
 			ret = parse_key(ctx->last_peer->preshared_key, value);
 			if (ret)
 				ctx->last_peer->flags |= WGPEER_HAS_PRESHARED_KEY;
 		} else if (key_match("AdvancedSecurity")) {
-			ret = parse_bool(&ctx->last_peer->advanced_security, "AdvancedSecurity", value);
+			ret = parse_bool(&ctx->last_peer->awg, "AdvancedSecurity", value);
 			if (ret)
-				ctx->last_peer->flags |= WGPEER_HAS_ADVANCED_SECURITY;
+				ctx->last_peer->flags |= WGPEER_HAS_AWG;
 		} else
 			goto error;
 	} else
@@ -704,10 +638,25 @@ bool config_read_line(struct config_ctx *ctx, const char *input)
 		goto out;
 	}
 
-	for (size_t i = 0; i < len; ++i) {
-		if (!char_is_space(input[i]))
-			line[cleaned_len++] = input[i];
+	bool is_awg_special_handshake_key = false;
+	for (size_t i = 0; awg_special_handshake_keys[i] != NULL; i++) {
+		if (!strncasecmp(input, awg_special_handshake_keys[i], 2)) {
+			is_awg_special_handshake_key = true;
+			break;
+		}
 	}
+
+	if (is_awg_special_handshake_key) {
+		cleaned_len = clean_special_handshake_line(input, len, line);
+	} else {
+		for (size_t i = 0; i < len; ++i) {
+			if (!char_is_space(input[i])) {
+				line[cleaned_len++] = input[i];
+			}
+		}
+	}
+
+
 	if (!cleaned_len)
 		goto out;
 	ret = process_line(ctx, line);
@@ -716,6 +665,44 @@ out:
 	if (!ret)
 		free_wgdevice(ctx->device);
 	return ret;
+}
+
+size_t clean_special_handshake_line(const char *input, size_t len, char *line)
+{
+	size_t cleaned_len = 0, value_end = 0;
+	bool found_equals = false, found_value_start = false;
+
+	/* Remove preceding and trailing whitespaces before value
+	 First pass: find the actual end of the value (trim trailing spaces) */
+	for (size_t i = len; i > 0; --i) {
+		if (!char_is_space(input[i - 1])) {
+			value_end = i;
+			break;
+		}
+	}
+
+	/* Second pass: clean according to KEY = VALUE rules */
+	for (size_t i = 0; i < value_end; ++i) {
+		if (!found_equals) {
+			/* Before '=': remove all whitespace */
+			if (input[i] == '=') {
+				line[cleaned_len++] = input[i];
+				found_equals = true;
+			} else if (!char_is_space(input[i])) {
+				line[cleaned_len++] = input[i];
+			}
+		} else if (!found_value_start) {
+			/* After '=' but before value: skip whitespace until first non-space */
+			if (!char_is_space(input[i])) {
+				line[cleaned_len++] = input[i];
+				found_value_start = true;
+			}
+		} else {
+			/* Within value: preserve all characters including spaces */
+			line[cleaned_len++] = input[i];
+		}
+	}
+	return cleaned_len;
 }
 
 bool config_read_init(struct config_ctx *ctx, bool append)
@@ -795,70 +782,155 @@ struct wgdevice *config_read_cmd(const char *argv[], int argc)
 		} else if (!strcmp(argv[0], "jc") && argc >= 2 && !peer) {
 			if (!parse_uint16(&device->junk_packet_count, "jc", argv[1]))
 				goto error;
-			
+
 			device->flags |= WGDEVICE_HAS_JC;
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "jmin") && argc >= 2 && !peer) {
 			if (!parse_uint16(&device->junk_packet_min_size, "jmin", argv[1]))
 				goto error;
-			
+
 			device->flags |= WGDEVICE_HAS_JMIN;
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "jmax") && argc >= 2 && !peer) {
 			if (!parse_uint16(&device->junk_packet_max_size, "jmax", argv[1]))
 				goto error;
-			
+
 			device->flags |= WGDEVICE_HAS_JMAX;
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "s1") && argc >= 2 && !peer) {
 			if (!parse_uint16(&device->init_packet_junk_size, "s1", argv[1]))
 				goto error;
-			
+
 			device->flags |= WGDEVICE_HAS_S1;
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "s2") && argc >= 2 && !peer) {
 			if (!parse_uint16(&device->response_packet_junk_size, "s2", argv[1]))
 				goto error;
-			
+
 			device->flags |= WGDEVICE_HAS_S2;
 			argv += 2;
 			argc -= 2;
-		} else if (!strcmp(argv[0], "h1") && argc >= 2 && !peer) {
-			if (!parse_uint32(&device->init_packet_magic_header, "h1", argv[1]))
+		} else if (!strcmp(argv[0], "s3") && argc >= 2 && !peer) {
+			if (!parse_uint16(&device->cookie_reply_packet_junk_size, "s3", argv[1]))
 				goto error;
-			
+
+			device->flags |= WGDEVICE_HAS_S3;
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "s4") && argc >= 2 && !peer) {
+			if (!parse_uint16(&device->transport_packet_junk_size, "s4", argv[1]))
+				goto error;
+
+			device->flags |= WGDEVICE_HAS_S4;
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "h1") && argc >= 2 && !peer) {
+			if (!u32_range_from_string(&device->init_header, argv[1]))
+				goto error;
 			device->flags |= WGDEVICE_HAS_H1;
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "h2") && argc >= 2 && !peer) {
-			if (!parse_uint32(&device->response_packet_magic_header, "h2", argv[1]))
+			if (!u32_range_from_string(&device->resp_header, argv[1]))
 				goto error;
-			
 			device->flags |= WGDEVICE_HAS_H2;
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "h3") && argc >= 2 && !peer) {
-			if (!parse_uint32(&device->underload_packet_magic_header, "h3", argv[1]))
+			if (!u32_range_from_string(&device->cookie_header, argv[1]))
 				goto error;
-			
 			device->flags |= WGDEVICE_HAS_H3;
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "h4") && argc >= 2 && !peer) {
-			if (!parse_uint32(&device->transport_packet_magic_header, "h4", argv[1]))
+			if (!u32_range_from_string(&device->transport_header, argv[1]))
 				goto error;
-			
 			device->flags |= WGDEVICE_HAS_H4;
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "i1") && argc >= 2 && !peer) {
-			if (!parse_i1_tag(&device->i1_bytes, &device->i1_len, argv[1])) goto error;
-			device->flags |= WGDEVICE_HAS_I1;
-			argv += 2; argc -= 2;
+			if ((device->i1 = strdup(argv[1])) != NULL)
+				device->flags |= WGDEVICE_HAS_I1;
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "i2") && argc >= 2 && !peer) {
+			if ((device->i2 = strdup(argv[1]))!= NULL)
+				device->flags |= WGDEVICE_HAS_I2;
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "i3") && argc >= 2 && !peer) {
+			if ((device->i3 = strdup(argv[1])) != NULL)
+				device->flags |= WGDEVICE_HAS_I3;
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "i4") && argc >= 2 && !peer) {
+			if ((device->i4 = strdup(argv[1])) != NULL)
+				device->flags |= WGDEVICE_HAS_I4;
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "i5") && argc >= 2 && !peer) {
+			if ((device->i5 = strdup(argv[1])) != NULL)
+				device->flags |= WGDEVICE_HAS_I5;
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "header-protection-key") && argc >= 2 && !peer) {
+			if (!parse_keyfile(device->header_protection_key, argv[1]))
+				goto error;
+			device->flags |= WGDEVICE_HAS_HEADER_PROTECTION_KEY;
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "content-padding-addition") && argc >= 2 && !peer) {
+			if (!u16_range_from_string(&device->content_padding_addition, argv[1]))
+				goto error;
+			device->flags |= WGDEVICE_HAS_CONTENT_PADDING_ADDITION;  
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "rekey-after-time") && argc >= 2 && !peer) {
+			if (!u16_range_from_string(&device->rekey_after_time, argv[1]))
+				goto error;
+			device->flags |= WGDEVICE_HAS_REKEY_AFTER_TIME;
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "rekey-timeout") && argc >= 2 && !peer) {
+			if (!u16_range_from_string(&device->rekey_timeout, argv[1]))
+				goto error;	
+			device->flags |= WGDEVICE_HAS_REKEY_TIMEOUT;
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "reject-after-time") && argc >= 2 && !peer) {
+			if (!u16_range_from_string(&device->reject_after_time, argv[1]))
+				goto error;
+			device->flags |= WGDEVICE_HAS_REJECT_AFTER_TIME;
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "keepalive-timeout") && argc >= 2 && !peer) {
+			if (!u16_range_from_string(&device->keepalive_timeout, argv[1]))
+				goto error;
+			device->flags |= WGDEVICE_HAS_KEEPALIVE_TIMEOUT;
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "max-handshake-attempts") && argc >= 2 && !peer) {
+			if (!u16_range_from_string(&device->max_handshake_attempts, argv[1]))
+				goto error;
+			device->flags |= WGDEVICE_HAS_MAX_HANDSHAKE_ATTEMPTS;
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "random-trailers") && argc >= 2 && !peer) {
+			if (!parse_bool(&device->random_trailers, "random-trailers", argv[1]))
+				goto error;
+			device->flags |= WGDEVICE_HAS_RANDOM_TRAILERS;
+			argv += 2;
+			argc -= 2;
+		} else if (!strcmp(argv[0], "disable-cookies") && argc >= 2 && !peer) {
+			if (!parse_bool(&device->disable_cookies, "disable-cookies", argv[1]))
+				goto error;
+			device->flags |= WGDEVICE_HAS_DISABLE_COOKIES;
+			argv += 2;
+			argc -= 2;
 		} else if (!strcmp(argv[0], "peer") && argc >= 2) {
 			struct wgpeer *new_peer = calloc(1, sizeof(*new_peer));
 
@@ -899,8 +971,9 @@ struct wgdevice *config_read_cmd(const char *argv[], int argc)
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "persistent-keepalive") && argc >= 2 && peer) {
-			if (!parse_persistent_keepalive(&peer->persistent_keepalive_interval, &peer->flags, argv[1]))
+			if (!u16_range_from_string(&peer->persistent_keepalive_interval, argv[1]))
 				goto error;
+			peer->flags |= WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL;
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "preshared-key") && argc >= 2 && peer) {
@@ -910,9 +983,9 @@ struct wgdevice *config_read_cmd(const char *argv[], int argc)
 			argv += 2;
 			argc -= 2;
 		} else if (!strcmp(argv[0], "advanced-security") && argc >= 2 && peer) {
-			if (!parse_bool(&peer->advanced_security, "AdvancedSecurity", argv[1]))
+			if (!parse_bool(&peer->awg, "AdvancedSecurity", argv[1]))
 				goto error;
-			peer->flags |= WGPEER_HAS_ADVANCED_SECURITY;
+			peer->flags |= WGPEER_HAS_AWG;
 			argv += 2;
 			argc -= 2;
 		} else {

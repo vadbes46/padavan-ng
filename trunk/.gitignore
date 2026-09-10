@@ -75,7 +75,7 @@ po/*.gmo
 libs/libssl/*/openssl-*/
 libs/libz/zlib-*/
 user/wireguard/wireguard-tools-*/
-user/amneziawg/amnezia-*/
+user/amneziawg/amnezia-*/wg
 user/samba36/samba-*/
 tools/lzma/7zip-*/
 tools/mksquashfs_xz/xz-*/

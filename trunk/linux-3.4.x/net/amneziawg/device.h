@@ -10,6 +10,8 @@
 #include "allowedips.h"
 #include "peerlookup.h"
 #include "cookie.h"
+#include "magic_header.h"
+#include "junk.h"
 
 #include <linux/types.h>
 #include <linux/netdevice.h>
@@ -37,44 +39,35 @@ struct prev_queue {
 	atomic_t count;
 };
 
-struct amnezia_config {
-	bool advanced_security_enabled;
-	u16 junk_packet_count;
-	u16 junk_packet_min_size;
-	u16 junk_packet_max_size;
-	u16 init_packet_junk_size;
-	u16 response_packet_junk_size;
-	u32 init_packet_magic_header;
-	u32 response_packet_magic_header;
-	u32 cookie_packet_magic_header;
-	u32 transport_packet_magic_header;
-	/* I1 support */
-        u16 i1_len;
-	u8 *i1_bytes; /* kmalloc'ed */
-};
-
 struct wg_device {
 	struct net_device *dev;
 	struct crypt_queue encrypt_queue, decrypt_queue, handshake_queue;
 	struct sock __rcu *sock4, *sock6;
 	struct net __rcu *creating_net;
 	struct noise_static_identity static_identity;
-	struct workqueue_struct *packet_crypt_wq,*handshake_receive_wq, *handshake_send_wq;
+	struct workqueue_struct *packet_crypt_wq, *handshake_receive_wq, *handshake_send_wq;
 	struct cookie_checker cookie_checker;
 	struct pubkey_hashtable *peer_hashtable;
 	struct index_hashtable *index_hashtable;
 	struct allowedips peer_allowedips;
 	struct mutex device_update_lock, socket_update_lock;
 	struct list_head device_list, peer_list;
-	struct amnezia_config advanced_security_config;
 	atomic_t handshake_queue_len;
 	unsigned int num_peers, device_update_gen;
 	u32 fwmark;
 	u16 incoming_port;
+
+	struct jp_spec ispecs[5];
+	struct magic_header headers[4];
+	u16 junk_size[4];
+	u16 jc;
+	u16 jmin;
+	u16 jmax;
+	bool advanced_security;
 };
 
 int wg_device_init(void);
 void wg_device_uninit(void);
-int wg_device_handle_post_config(struct net_device *dev, struct amnezia_config *asc);
+int wg_device_handle_post_config(struct wg_device *wg);
 
 #endif /* _WG_DEVICE_H */

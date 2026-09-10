@@ -318,6 +318,11 @@ static void mnl_attr_put(struct nlmsghdr *nlh, uint16_t type, size_t len,
 		memset(mnl_attr_get_payload(attr) + len, 0, pad);
 }
 
+static void mnl_attr_put_u8(struct nlmsghdr *nlh, uint16_t type, uint8_t data)
+{
+	mnl_attr_put(nlh, type, sizeof(uint8_t), &data);
+}
+
 static void mnl_attr_put_u16(struct nlmsghdr *nlh, uint16_t type, uint16_t data)
 {
 	mnl_attr_put(nlh, type, sizeof(uint16_t), &data);
@@ -326,6 +331,11 @@ static void mnl_attr_put_u16(struct nlmsghdr *nlh, uint16_t type, uint16_t data)
 static void mnl_attr_put_u32(struct nlmsghdr *nlh, uint16_t type, uint32_t data)
 {
 	mnl_attr_put(nlh, type, sizeof(uint32_t), &data);
+}
+
+static void mnl_attr_put_u64(struct nlmsghdr *nlh, uint16_t type, uint64_t data)
+{
+	mnl_attr_put(nlh, type, sizeof(uint64_t), &data);
 }
 
 static void mnl_attr_put_strz(struct nlmsghdr *nlh, uint16_t type, const char *data)
@@ -718,17 +728,18 @@ static int get_family_id_attr_cb(const struct nlattr *attr, void *data)
 
 static int get_family_id_cb(const struct nlmsghdr *nlh, void *data)
 {
-	uint16_t *p_id = data;
+	struct mnlg_socket *nlg = data;
 	struct nlattr *tb[CTRL_ATTR_MAX + 1] = { 0 };
 
 	mnl_attr_parse(nlh, sizeof(struct genlmsghdr), get_family_id_attr_cb, tb);
-	if (!tb[CTRL_ATTR_FAMILY_ID])
+	if (!tb[CTRL_ATTR_FAMILY_ID] || !tb[CTRL_ATTR_VERSION])
 		return MNL_CB_ERROR;
-	*p_id = mnl_attr_get_u16(tb[CTRL_ATTR_FAMILY_ID]);
+	nlg->id = mnl_attr_get_u16(tb[CTRL_ATTR_FAMILY_ID]);
+	nlg->version = mnl_attr_get_u32(tb[CTRL_ATTR_VERSION]);
 	return MNL_CB_OK;
 }
 
-static struct mnlg_socket *mnlg_socket_open(const char *family_name, uint8_t version)
+static struct mnlg_socket *mnlg_socket_open(const char *family_name)
 {
 	struct mnlg_socket *nlg;
 	struct nlmsghdr *nlh;
@@ -767,13 +778,12 @@ static struct mnlg_socket *mnlg_socket_open(const char *family_name, uint8_t ver
 	}
 
 	errno = 0;
-	if (mnlg_socket_recv_run(nlg, get_family_id_cb, &nlg->id) < 0) {
+	if (mnlg_socket_recv_run(nlg, get_family_id_cb, nlg) < 0) {
 		errno = errno == ENOENT ? EPROTONOSUPPORT : errno;
 		err = errno ? -errno : -ENOSYS;
 		goto err_mnlg_socket_recv_run;
 	}
 
-	nlg->version = version;
 	errno = 0;
 	return nlg;
 

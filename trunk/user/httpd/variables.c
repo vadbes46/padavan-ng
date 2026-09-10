@@ -690,6 +690,8 @@
 			{"vpnc_awg_jmax", "", NULL, EVM_RESTART_VPNCLI},
 			{"vpnc_awg_s1", "", NULL, EVM_RESTART_VPNCLI},
 			{"vpnc_awg_s2", "", NULL, EVM_RESTART_VPNCLI},
+			{"vpnc_awg_s3", "", NULL, EVM_RESTART_VPNCLI},
+			{"vpnc_awg_s4", "", NULL, EVM_RESTART_VPNCLI},
 			{"vpnc_awg_h1", "", NULL, EVM_RESTART_VPNCLI},
 			{"vpnc_awg_h2", "", NULL, EVM_RESTART_VPNCLI},
 			{"vpnc_awg_h3", "", NULL, EVM_RESTART_VPNCLI},

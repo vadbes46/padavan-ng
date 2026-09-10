@@ -15,6 +15,8 @@ IF_JMIN=$(nvram get vpnc_awg_jmin)
 IF_JMAX=$(nvram get vpnc_awg_jmax)
 IF_S1=$(nvram get vpnc_awg_s1)
 IF_S2=$(nvram get vpnc_awg_s2)
+IF_S3=$(nvram get vpnc_awg_s3)
+IF_S4=$(nvram get vpnc_awg_s4)
 IF_H1=$(nvram get vpnc_awg_h1)
 IF_H2=$(nvram get vpnc_awg_h2)
 IF_H3=$(nvram get vpnc_awg_h3)
@@ -122,6 +124,8 @@ EOF
 	append_if_set "Jmax" "$IF_JMAX"
 	append_if_set "S1" "$IF_S1"
 	append_if_set "S2" "$IF_S2"
+	append_if_set "S3" "$IF_S3"
+	append_if_set "S4" "$IF_S4"
 	append_if_set "H1" "$IF_H1"
 	append_if_set "H2" "$IF_H2"
 	append_if_set "H3" "$IF_H3"

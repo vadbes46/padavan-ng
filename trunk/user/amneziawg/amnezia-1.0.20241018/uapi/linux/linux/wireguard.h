@@ -111,7 +111,7 @@
  *                                       most recent protocol will be used when
  *                                       this is unset. Otherwise, must be set
  *                                       to 1.
- *            WGPEER_A_ADVANCED_SECURITY: flag indicating that advanced security
+ *            WGPEER_A_AWG: flag indicating that advanced security
  *                                       techniques provided by AmneziaWG should
  *                                       be used.
  *        0: NLA_NESTED
@@ -144,7 +144,7 @@
  *    WGDEVICE_A_PEER: NLA_NESTED
  *        WGPEER_A_PUBLIC_KEY: NLA_EXACT_LEN, len WG_KEY_LEN
  *        WGPEER_A_ENDPOINT: NLA_MIN_LEN(struct sockaddr), struct sockaddr_in or struct sockaddr_in6
- *        WGPEER_A_ADVANCED_SECURITY: flag indicating that advanced security
+ *        WGPEER_A_AWG: flag indicating that advanced security
  *                                    techniques provided by AmneziaWG should
  *                                    be used.
  *
@@ -191,8 +191,23 @@ enum wgdevice_attribute {
 	WGDEVICE_A_H2,
 	WGDEVICE_A_H3,
 	WGDEVICE_A_H4,
-	WGDEVICE_A_I1,
 	WGDEVICE_A_PEER,
+	WGDEVICE_A_S3,
+	WGDEVICE_A_S4,
+	WGDEVICE_A_I1,
+	WGDEVICE_A_I2,
+	WGDEVICE_A_I3,
+	WGDEVICE_A_I4,
+	WGDEVICE_A_I5,
+	WGDEVICE_A_HEADER_PROTECTION_KEY,
+	WGDEVICE_A_CONTENT_PADDING_ADDITION,
+	WGDEVICE_A_REKEY_AFTER_TIME,
+	WGDEVICE_A_REKEY_TIMEOUT,
+	WGDEVICE_A_REJECT_AFTER_TIME,
+	WGDEVICE_A_KEEPALIVE_TIMEOUT,
+	WGDEVICE_A_MAX_HANDSHAKE_ATTEMPTS,
+	WGDEVICE_A_RANDOM_TRAILERS,
+	WGDEVICE_A_DISABLE_COOKIES,
 	__WGDEVICE_A_LAST
 };
 #define WGDEVICE_A_MAX (__WGDEVICE_A_LAST - 1)
@@ -201,7 +216,7 @@ enum wgpeer_flag {
 	WGPEER_F_REMOVE_ME = 1U << 0,
 	WGPEER_F_REPLACE_ALLOWEDIPS = 1U << 1,
 	WGPEER_F_UPDATE_ONLY = 1U << 2,
-	WGPEER_F_HAS_ADVANCED_SECURITY = 1U << 3,
+	WGPEER_F_HAS_AWG = 1U << 3,
 	__WGPEER_F_ALL = WGPEER_F_REMOVE_ME | WGPEER_F_REPLACE_ALLOWEDIPS |
 			 WGPEER_F_UPDATE_ONLY
 };
@@ -217,7 +232,7 @@ enum wgpeer_attribute {
 	WGPEER_A_TX_BYTES,
 	WGPEER_A_ALLOWEDIPS,
 	WGPEER_A_PROTOCOL_VERSION,
-	WGPEER_A_ADVANCED_SECURITY,
+	WGPEER_A_AWG,
 	__WGPEER_A_LAST
 };
 #define WGPEER_A_MAX (__WGPEER_A_LAST - 1)

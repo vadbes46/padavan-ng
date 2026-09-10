@@ -849,6 +849,8 @@ struct nvram_pair router_defaults[] = {
 	{ "vpnc_awg_jmax", "" },
 	{ "vpnc_awg_s1", "" },
 	{ "vpnc_awg_s2", "" },
+	{ "vpnc_awg_s3", "" },
+	{ "vpnc_awg_s4", "" },
 	{ "vpnc_awg_h1", "" },
 	{ "vpnc_awg_h2", "" },
 	{ "vpnc_awg_h3", "" },
