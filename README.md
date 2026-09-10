@@ -1,7 +1,4 @@
-# padavan-ng (Fork) #
-
-> **Note:** This repository is a fork of the upstream [padavan-ng project by Sergey Hadzhioglu](https://gitlab.com/hadzhioglu/padavan-ng).
-> It includes compilation and build fixes for modern Linux distributions with GCC 14/15, C23 compatibility fixes, and improved repository hygiene.
+# padavan-ng #
 
 Welcome to the padavan-ng project
 
