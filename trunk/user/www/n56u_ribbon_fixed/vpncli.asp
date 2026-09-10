@@ -1228,7 +1228,7 @@ function wg_conf_import() {
                                             <tr>
                                                 <th>I1:</th>
                                                 <td>
-                                                    <input type="text" name="vpnc_awg_i1" class="input" maxlength="8192" size="32" value="<% nvram_get_x("", "vpnc_awg_i1"); %>"/>
+                                                    <input type="text" name="vpnc_awg_i1" class="input" maxlength="4096" size="32" value="<% nvram_get_x("", "vpnc_awg_i1"); %>"/>
                                                     &nbsp;<span class="hint-nowrap">[ &lt;tags&gt; ]</span>
                                                 </td>
                                             </tr>
