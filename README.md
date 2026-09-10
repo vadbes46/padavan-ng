@@ -16,9 +16,24 @@ NOTE: if and when a possible interesting change will get added depends on a veri
 
 ### Compilation Instructions ###
 
+#### Verified Build Environment
+
+This release is verified and **guaranteed to compile** with the following system configuration:
+
+| Component | Verified Version / Specification |
+| :--- | :--- |
+| **Host OS** | Ubuntu 26.04 LTS (x86_64) / Ubuntu 24.04 LTS / Ubuntu 22.04 LTS |
+| **Host Compiler** | GCC 14.x / 15.2.0 (`gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0`) |
+| **Host Build Tools** | GNU Make 4.4.1+, Autotools (autoconf 2.72+, automake 1.17+), kmod 32+, Python 3 |
+| **Cross-Toolchain** | crosstool-NG MIPS32 (`toolchain/out/bin/mipsel-linux-uclibc-gcc`) |
+| **Cross-Compiler** | GCC **7.5.0** (`mipsel-linux-uclibc-gcc (crosstool-NG MIPS32) 7.5.0`) |
+| **Target Architecture** | MIPS32r2, Little-Endian (`mipsel`) |
+| **Target C Library** | **uClibc-ng 1.0.52** |
+| **Target Kernel** | Linux **3.4.113** |
+
 #### 1. Install Dependencies
 
-Ubuntu Desktop 22.04 LTS or newer is recommended. When building on modern Linux distributions (e.g. Ubuntu 24.04 / 25.04 with host GCC 14/15), standard C compatibility flags are required (see Step 2).
+Ubuntu Desktop 22.04 LTS or newer is recommended. When building on modern Linux distributions (e.g. Ubuntu 24.04 / 25.04 / 26.04 with host GCC 14/15), standard C compatibility flags are required (see Step 2).
 
 ```shell
 sudo apt update
