@@ -731,6 +731,7 @@ start_services_once(int is_ap_mode)
 #if defined(APP_ZAPRET)
 	start_zapret();
 #endif
+	system("/usr/bin/iappd.sh restart");
 	return 0;
 }
 

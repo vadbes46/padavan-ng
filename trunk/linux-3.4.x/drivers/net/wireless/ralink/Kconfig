@@ -9,23 +9,24 @@ config RT_MAX_CLIENTS
 config RT_BAND_STEERING
 	bool "Band Steering support"
 	depends on !RT_SECOND_IF_NONE
-	default n
+	default y
 
 config RT_DOT11R_FT
 	bool "802.11r Fast BSS Transition support"
-	default n
+	default y
 
 config RT_DOT11K_RRM
 	bool "802.11k Radio Resource Management support"
-	default n
+	default y
 
 config RT_80211N_DRAFT3
 	bool "802.11n Draft3 (BSS Coexistence)"
-	default n
+	default y
 
 config RT_80211W_PMF
 	bool "802.11w Protected Management Frames (PMF) support"
-	default n
+	default y
+
 
 #config RT_WAPI
 #	bool "WAPI support"

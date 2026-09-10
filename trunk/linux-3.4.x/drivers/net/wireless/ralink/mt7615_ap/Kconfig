@@ -238,12 +238,13 @@ config MU_RA_SUPPORT
 config DOT11R_FT_SUPPORT
 	bool "802.11r Fast BSS Transition"
 	depends on MT7615_AP
-	default n
+	default y
 
 config DOT11K_RRM_SUPPORT
 	bool "802.11k Radio Resource Management"
 	depends on MT7615_AP
-	default n
+	default y
+
 
 config INTERWORKING
 	bool "802.11u Interworking/Gas Support"
@@ -364,6 +365,11 @@ config VOW_SUPPORT
 	depends on MT7615_AP
 	default y
 
+config BAND_STEERING
+	bool "Band Steering"
+	depends on MT7615_AP
+	default y
+
 config LED_CONTROL_SUPPORT
 	bool "LED Control Support"
 	default n
@@ -414,7 +420,8 @@ config AIR_MONITOR
 config WNM_SUPPORT
 	bool "802.11v WNM Support"
 	depends on MT7615_AP
-	default n
+	default y
+
 
 config WPA3_SUPPORT
 	bool "WPA3 support"

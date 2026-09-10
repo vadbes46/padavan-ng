@@ -688,7 +688,6 @@ gen_ralink_config(int is_soc_ap, int is_aband, int disable_autoscan)
 	fprintf(fp, "E2pAccessMode=%d\n", 2);
 	fprintf(fp, "CP_SUPPORT=%d\n", 2);
 	fprintf(fp, "VHT_Sec80_Channel=%d\n", 0);
-	fprintf(fp, "WNMEnable=%d\n", 0);
 	fprintf(fp, "SKUenable=%d\n", 0); //TODO
 	fprintf(fp, "PowerUpenable=%d\n", 0);
 #endif
@@ -1207,6 +1206,24 @@ gen_ralink_config(int is_soc_ap, int is_aband, int disable_autoscan)
 	//HT_AMSDU
 	i_val = nvram_wlan_get_int(is_aband, "HT_AMSDU");
 	fprintf(fp, "HT_AMSDU=%d\n", i_val);
+
+	//802.11KVR
+	i_val = nvram_wlan_get_int(is_aband, "HT_80211KV");
+	fprintf(fp, "RRMEnable=%d;%d\n", i_val, i_val);
+	fprintf(fp, "WNMEnable=%d;%d\n", i_val, i_val);
+	i_val = nvram_wlan_get_int(is_aband, "HT_80211R");
+#if defined (BOARD_MT7915_DBDC)
+	if (is_aband)
+		fprintf(fp, "FtSupport=%d;%d\n", i_val);
+	else
+		fprintf(fp, "FtSupport=%d;%d\n", i_val);
+	fprintf(fp, "FtOtd=0;0\n");
+	fprintf(fp, "FtRic=1;1\n");
+#else
+	fprintf(fp, "FtSupport=%d\n", i_val);
+	fprintf(fp, "FtOtd=0\n");
+	fprintf(fp, "FtRic=1\n");
+#endif
 
 	//HT_BAWinSize
 	i_val = nvram_wlan_get_int(is_aband, "HT_BAWinSize");
