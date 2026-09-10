@@ -403,10 +403,10 @@ static int wg_newlink(struct net *src_net, struct net_device *dev,
 	 */
 	dev->priv_destructor = wg_destruct;
 
-	wg->advanced_security_config.init_packet_magic_header = MESSAGE_HANDSHAKE_INITIATION;
-	wg->advanced_security_config.response_packet_magic_header = MESSAGE_HANDSHAKE_RESPONSE;
-	wg->advanced_security_config.cookie_packet_magic_header = MESSAGE_HANDSHAKE_COOKIE;
-	wg->advanced_security_config.transport_packet_magic_header = MESSAGE_DATA;
+	wg->headers[0].start = wg->headers[0].end = MESSAGE_HANDSHAKE_INITIATION;
+	wg->headers[1].start = wg->headers[1].end = MESSAGE_HANDSHAKE_RESPONSE;
+	wg->headers[2].start = wg->headers[2].end = MESSAGE_HANDSHAKE_COOKIE;
+	wg->headers[3].start = wg->headers[3].end = MESSAGE_DATA;
 
 	pr_debug("%s: Interface created\n", dev->name);
 	return ret;
