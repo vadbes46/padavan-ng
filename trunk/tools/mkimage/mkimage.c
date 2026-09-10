@@ -259,8 +259,17 @@ main (int argc, char **argv)
 				if ((argc-=2) < 0)
 					usage ();
 				memset(&tail_pre, 0, sizeof(tail_pre));
-				sscanf(argv[1], "%d.%d", &tail_pre.kernel.major, &tail_pre.kernel.minor);
-				sscanf(argv[2], "%d.%d%c", &tail_pre.fs.major, &tail_pre.fs.minor, &tail_pre.sub_fs);   
+				{
+					int k_maj = 0, k_min = 0, fs_maj = 0, fs_min = 0;
+					char s_fs = 0;
+					sscanf(argv[1], "%d.%d", &k_maj, &k_min);
+					sscanf(argv[2], "%d.%d%c", &fs_maj, &fs_min, &s_fs);
+					tail_pre.kernel.major = (uint8_t)k_maj;
+					tail_pre.kernel.minor = (uint8_t)k_min;
+					tail_pre.fs.major = (uint8_t)fs_maj;
+					tail_pre.fs.minor = (uint8_t)fs_min;
+					tail_pre.sub_fs = (uint8_t)s_fs;
+				}
 //				for(i=0; i<8; i++)
 //					sscanf(argv[i+3], "%d.%d", &tail_pre.hw[i].major, &tail_pre.hw[i].minor);
 //				argv+=10;

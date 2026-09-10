@@ -67,7 +67,7 @@ ifeq ($(CONV_WARNINGS), strict)
 LTM_CFLAGS += -DMP_USE_ENUMS -Wc++-compat
 endif
 else
-LTM_CFLAGS += -Wsystem-headers
+#LTM_CFLAGS += -Wsystem-headers
 endif
 
 ifdef COMPILE_DEBUG

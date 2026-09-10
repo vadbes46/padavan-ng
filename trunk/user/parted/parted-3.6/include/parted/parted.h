@@ -50,8 +50,8 @@ extern const char *ped_get_version ()
 #endif
 ;
 
-extern void* __attribute__ ((malloc)) ped_malloc (size_t size);
-extern void* __attribute__ ((malloc)) ped_calloc (size_t size);
+extern void* __attribute__ ((__malloc__)) ped_malloc (size_t size);
+extern void* __attribute__ ((__malloc__)) ped_calloc (size_t size);
 extern void free (void* ptr);
 
 #ifdef __cplusplus

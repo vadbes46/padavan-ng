@@ -35,3 +35,26 @@
  #define MOTD_FILENAME "/etc/motd"
  
  /* Authentication Types - at least one required.
+  */
+--- dropbear-2025.88/libtommath/makefile_include.mk
++++ dropbear-2025.88/libtommath/makefile_include.mk
+@@ -67,7 +67,7 @@
+ LTM_CFLAGS += -DMP_USE_ENUMS -Wc++-compat
+ endif
+ else
+-LTM_CFLAGS += -Wsystem-headers
++#LTM_CFLAGS += -Wsystem-headers
+ endif
+ 
+ ifdef COMPILE_DEBUG
+--- dropbear-2025.88/libtomcrypt/makefile_include.mk
++++ dropbear-2025.88/libtomcrypt/makefile_include.mk
+@@ -86,7 +86,7 @@
+ else
+ LTC_CFLAGS += -Wextra
+ # additional warnings
+-LTC_CFLAGS += -Wsystem-headers -Wbad-function-cast -Wcast-align
++LTC_CFLAGS += -Wbad-function-cast -Wcast-align
+ LTC_CFLAGS += -Wstrict-prototypes -Wpointer-arith
+ LTC_CFLAGS += -Wdeclaration-after-statement
+ LTC_CFLAGS += -Wwrite-strings

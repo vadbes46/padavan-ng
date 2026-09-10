@@ -194,7 +194,7 @@ http_ssl_info_cb(const SSL *ssl, int where, int ret)
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 		ssl->s3->flags |= SSL3_FLAGS_NO_RENEGOTIATE_CIPHERS;
 #else
-		SSL_set_options(ssl, SSL_OP_NO_RENEGOTIATION);
+		SSL_set_options((SSL *)ssl, SSL_OP_NO_RENEGOTIATION);
 #endif
 	}
 }

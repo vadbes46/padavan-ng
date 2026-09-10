@@ -201,7 +201,7 @@ static int llmnr_send_response(struct endpoint *ep, _saddr_t *sa,
 
 	/* verify in_name_len */
 	if (in_name_len != strlen(in_name)) {
-		DEBUG(1, L, "llmnr: bad name length %ld != %ld", in_name_len, strlen(in_name));
+		DEBUG(1, L, "llmnr: bad name length %zu != %zu", in_name_len, strlen(in_name));
 		free(in_name);
 		return -1;
 	}

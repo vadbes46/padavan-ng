@@ -36,9 +36,12 @@ depmod_opt=""
 if $depmod_bin --help 2>&1 | grep -q -- "-r"; then
 	depmod_opt="-r"
 fi
+# create dummy modules.builtin.modinfo for modern kmod depmod if not present
+touch "${INSTALL_MOD_PATH}/lib/modules/${KERNELRELEASE}/modules.builtin.modinfo"
 ${FAKEROOT} $depmod_bin -ae -F System.map -b "${INSTALL_MOD_PATH}" $depmod_opt ${KERNELRELEASE}
 
 # clear unneeded depmod files
+rm -f "${INSTALL_MOD_PATH}/lib/modules/${KERNELRELEASE}/modules.builtin.modinfo"
 rm -f "${INSTALL_MOD_PATH}/lib/modules/${KERNELRELEASE}/modules.alias"
 rm -f "${INSTALL_MOD_PATH}/lib/modules/${KERNELRELEASE}/modules.alias.bin"
 rm -f "${INSTALL_MOD_PATH}/lib/modules/${KERNELRELEASE}/modules.dep.bin"

@@ -236,7 +236,7 @@ static __always_inline _syscall6(ssize_t, __syscall_pread, int, fd, void *, buf,
 static __always_inline ssize_t
 _dl_pread(int fd, void *buf, size_t count, off_t offset)
 {
-	return __syscall_pread(fd, buf, count, 0, __LONG_LONG_PAIR((offset >> 32), (offset & 0xffffffff)));
+	return __syscall_pread(fd, buf, count, 0, __LONG_LONG_PAIR(((uint64_t)offset >> 32), (offset & 0xffffffff)));
 }
 #else
 static __always_inline _syscall5(ssize_t, __syscall_pread, int, fd, void *, buf,

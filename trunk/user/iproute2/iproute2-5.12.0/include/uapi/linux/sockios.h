@@ -37,6 +37,7 @@
 /* Get stamp (timespec) */
 #define SIOCGSTAMPNS_NEW _IOR(SOCK_IOC_TYPE, 0x07, long long[2])
 
+#ifndef SIOCGSTAMP
 #if __BITS_PER_LONG == 64 || (defined(__x86_64__) && defined(__ILP32__))
 /* on 64-bit and x32, avoid the ?: operator */
 #define SIOCGSTAMP	SIOCGSTAMP_OLD
@@ -46,6 +47,7 @@
 			 SIOCGSTAMP_OLD   : SIOCGSTAMP_NEW)
 #define SIOCGSTAMPNS	((sizeof(struct timespec)) == 8 ? \
 			 SIOCGSTAMPNS_OLD : SIOCGSTAMPNS_NEW)
+#endif
 #endif
 
 /* Routing table calls. */

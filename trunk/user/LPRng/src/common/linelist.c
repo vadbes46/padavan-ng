@@ -2314,22 +2314,18 @@ fclose(aaaaaa);
 #endif
 
 #if 1
-{
-char a1[8], a2[8], a3[8], a4[8], a5[16];
-int b1=0, b2=0;
-strcpy(a1, "root");
-strcpy(a2, "x");
-strcpy(a3, "root");
-strcpy(a4, "/root");
-strcpy(a5, "/bin/bash");
-pw->pw_name=a1;
-pw->pw_passwd=a2;
-pw->pw_gecos=a3;
-pw->pw_dir=a4;
-pw->pw_shell=a5;
-pw->pw_uid=b1;
-pw->pw_gid=b2;
-}	
+	{
+		static struct passwd root_pw = {
+			.pw_name = "root",
+			.pw_passwd = "x",
+			.pw_uid = 0,
+			.pw_gid = 0,
+			.pw_gecos = "root",
+			.pw_dir = "/root",
+			.pw_shell = "/bin/sh"
+		};
+		pw = &root_pw;
+	}	
 #else
 	if( (pw = getpwuid( getuid())) == 0 ){
 		LOGERR_DIE(LOG_INFO) "setup_envp: getpwuid(%d) failed", getuid());

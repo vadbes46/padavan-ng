@@ -1219,7 +1219,7 @@ static struct usb_cdc_ncm_ndp32 *cdc_ncm_ndp32(struct cdc_ncm_ctx *ctx, struct s
 
 	/* push a new empty NDP */
 	if (!(ctx->drvflags & CDC_NCM_FLAG_NDP_TO_END))
-		ndp32 = (struct usb_cdc_ncm_ndp32 *)memset(skb_put(skb, ctx->delayed_ndp32), 0, ctx->delayed_ndp32);
+		ndp32 = (struct usb_cdc_ncm_ndp32 *)memset(skb_put(skb, ctx->max_ndp_size), 0, ctx->max_ndp_size);
 	else
 		ndp32 = ctx->delayed_ndp32;
 
