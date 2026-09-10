@@ -18,18 +18,23 @@ NOTE: if and when a possible interesting change will get added depends on a veri
 
 #### Verified Build Environment
 
-This release is verified and **guaranteed to compile** with the following system configuration:
+This release was built, verified, and is **guaranteed to compile** on our reference build host:
 
-| Component | Verified Version / Specification |
-| :--- | :--- |
-| **Host OS** | Ubuntu 26.04 LTS (x86_64) / Ubuntu 24.04 LTS / Ubuntu 22.04 LTS |
-| **Host Compiler** | GCC 14.x / 15.2.0 (`gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0`) |
-| **Host Build Tools** | GNU Make 4.4.1+, Autotools (autoconf 2.72+, automake 1.17+), kmod 32+, Python 3 |
-| **Cross-Toolchain** | crosstool-NG MIPS32 (`toolchain/out/bin/mipsel-linux-uclibc-gcc`) |
-| **Cross-Compiler** | GCC **7.5.0** (`mipsel-linux-uclibc-gcc (crosstool-NG MIPS32) 7.5.0`) |
-| **Target Architecture** | MIPS32r2, Little-Endian (`mipsel`) |
-| **Target C Library** | **uClibc-ng 1.0.52** |
-| **Target Kernel** | Linux **3.4.113** |
+- **Reference Host OS:** Ubuntu 26.04.1 LTS (Resolute Raccoon) x86_64, Linux kernel 7.0
+- **Reference Host Compiler:** GCC **15.2.0** (`gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0`)
+- **Reference Host Build Tools:** GNU Make 4.4.1, Autotools (autoconf 2.72, automake 1.17), kmod 32+, Python 3.12+
+- **Cross-Compiler Toolchain:**
+  - Generator: crosstool-NG (MIPS32)
+  - Cross-Compiler: `mipsel-linux-uclibc-gcc` **7.5.0** (`toolchain/out/bin/mipsel-linux-uclibc-gcc`)
+  - Target Architecture: MIPS32r2, Little-Endian (`mipsel`)
+  - Target C Library: **uClibc-ng 1.0.52**
+  - Target Kernel: Linux **3.4.113**
+
+**Compatible / Closely Related Environments:**
+Due to shared package ecosystems, modern glibc, and toolchain configurations, successful compilation is also expected on:
+- **Ubuntu:** 24.04 LTS (Noble Numbat), 25.04, 22.04 LTS (Jammy Jellyfish)
+- **Debian:** Debian 12 (Bookworm), Debian 13 (Trixie), Debian Testing
+- Other modern GNU/Linux distributions with GCC 13/14/15 and GNU Make 4.3+ (requires `CT_EXTRA_CFLAGS_FOR_HOST="-O2 -std=gnu17"` for crosstool-NG on GCC 14/15 hosts, see Step 2).
 
 #### 1. Install Dependencies
 
