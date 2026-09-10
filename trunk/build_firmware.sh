@@ -1,7 +1,22 @@
-#!/bin/sh
+#!/bin/bash
+
+# If invoked via /bin/sh (e.g. dash), re-execute with bash
+if [ -z "$BASH_VERSION" ]; then
+	exec /bin/bash "$0" "$@"
+fi
 
 ROOTDIR=`pwd`
 export ROOTDIR=$ROOTDIR
+
+# Dual output: tee to console and build.log
+if [ -z "$BUILD_LOG_ACTIVE" ]; then
+	export BUILD_LOG_ACTIVE=1
+	LOGFILE="${ROOTDIR}/build.log"
+	ln -sf "trunk/build.log" "${ROOTDIR}/../build.log" 2>/dev/null || true
+	echo "Building firmware... Log output is mirrored to console and ${LOGFILE}"
+	"$0" "$@" 2>&1 | tee "${LOGFILE}"
+	exit "${PIPESTATUS[0]}"
+fi
 
 FAKEROOT='fakeroot'
 ${FAKEROOT} echo 1 2>&1 >/dev/null

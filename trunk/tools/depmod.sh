@@ -31,8 +31,12 @@ if [ "$CONFIG_FIRMWARE_INCLUDE_IPSET" = "y" ]; then
 fi
 
 # call depmod
-#sudo $depmod_bin -ae -F System.map -b "${INSTALL_MOD_PATH}" -r ${KERNELRELEASE}
-${FAKEROOT} $depmod_bin -ae -F System.map -b "${INSTALL_MOD_PATH}" -r ${KERNELRELEASE}
+# modern kmod depmod takes kernel version directly; legacy module-init-tools used -r
+depmod_opt=""
+if $depmod_bin --help 2>&1 | grep -q -- "-r"; then
+	depmod_opt="-r"
+fi
+${FAKEROOT} $depmod_bin -ae -F System.map -b "${INSTALL_MOD_PATH}" $depmod_opt ${KERNELRELEASE}
 
 # clear unneeded depmod files
 rm -f "${INSTALL_MOD_PATH}/lib/modules/${KERNELRELEASE}/modules.alias"

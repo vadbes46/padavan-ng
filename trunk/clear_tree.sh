@@ -33,6 +33,7 @@ make clean
 rm -rfv $ROOTDIR/romfs
 rm -rfv $ROOTDIR/images
 rm -rfv $ROOTDIR/stage
+rm -f $ROOTDIR/build.log $ROOTDIR/../build.log
 
 if [ -d "$ROOTDIR/../.git" ]; then
 	echo "Restoring churned repository files..."

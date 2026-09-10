@@ -14,3 +14,11 @@ toolchain/build.log
 # Firmware images
 *.trx
 *.bin
+built_images/
+
+# Build logs
+build.log
+*.log
+trunk/build.log
+build_logs/
+
