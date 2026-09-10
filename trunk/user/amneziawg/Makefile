@@ -1,4 +1,4 @@
-SRC_NAME= amnezia-1.0.20241018
+SRC_NAME= amnezia-3.1.20260812
 
 CFLAGS +=$(COPT) -ffunction-sections -fdata-sections -fvisibility=hidden
 LDFLAGS += -Wl,--gc-sections
