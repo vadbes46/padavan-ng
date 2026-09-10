@@ -336,11 +336,14 @@ static int wg_newlink(struct net *src_net, struct net_device *dev,
 {
 	struct wg_device *wg = netdev_priv(dev);
 	int ret = -ENOMEM;
+	int i;
 
 	rcu_assign_pointer(wg->creating_net, src_net);
 	init_rwsem(&wg->static_identity.lock);
 	mutex_init(&wg->socket_update_lock);
 	mutex_init(&wg->device_update_lock);
+	for (i = 0; i < ARRAY_SIZE(wg->ispecs); ++i)
+		mutex_init(&wg->ispecs[i].lock);
 	wg_allowedips_init(&wg->peer_allowedips);
 	wg_cookie_checker_init(&wg->cookie_checker, wg);
 	INIT_LIST_HEAD(&wg->peer_list);
@@ -507,7 +510,6 @@ void wg_device_uninit(void)
 
 int wg_device_handle_post_config(struct wg_device *wg)
 {
-	int err;
 	int i, j;
 
 	if (!wg->advanced_security)
@@ -556,15 +558,6 @@ int wg_device_handle_post_config(struct wg_device *wg)
 						    wg->dev->name, i + 1, j + 1);
 				return -EINVAL;
 			}
-		}
-	}
-
-	for (i = 0; i < ARRAY_SIZE(wg->ispecs); ++i) {
-		err = jp_spec_setup(&wg->ispecs[i]);
-		if (err) {
-			net_dbg_ratelimited("%s: I%d-packet invalid format\n",
-					    wg->dev->name, i + 1);
-			return err;
 		}
 	}
 

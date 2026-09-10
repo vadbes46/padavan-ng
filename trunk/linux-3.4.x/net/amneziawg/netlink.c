@@ -680,32 +680,47 @@ static int wg_set_device(struct sk_buff *skb, struct genl_info *info)
 
 	if (info->attrs[WGDEVICE_A_I1]) {
 		wg->advanced_security = true;
-		kfree(wg->ispecs[0].desc);
-		wg->ispecs[0].desc = kstrdup(nla_data(info->attrs[WGDEVICE_A_I1]), GFP_KERNEL);
+		ret = jp_spec_setup(&wg->ispecs[0], nla_data(info->attrs[WGDEVICE_A_I1]));
+		if (ret) {
+			net_dbg_ratelimited("%s: I1-packet invalid format\n", wg->dev->name);
+			goto out;
+		}
 	}
 
 	if (info->attrs[WGDEVICE_A_I2]) {
 		wg->advanced_security = true;
-		kfree(wg->ispecs[1].desc);
-		wg->ispecs[1].desc = kstrdup(nla_data(info->attrs[WGDEVICE_A_I2]), GFP_KERNEL);
+		ret = jp_spec_setup(&wg->ispecs[1], nla_data(info->attrs[WGDEVICE_A_I2]));
+		if (ret) {
+			net_dbg_ratelimited("%s: I2-packet invalid format\n", wg->dev->name);
+			goto out;
+		}
 	}
 
 	if (info->attrs[WGDEVICE_A_I3]) {
 		wg->advanced_security = true;
-		kfree(wg->ispecs[2].desc);
-		wg->ispecs[2].desc = kstrdup(nla_data(info->attrs[WGDEVICE_A_I3]), GFP_KERNEL);
+		ret = jp_spec_setup(&wg->ispecs[2], nla_data(info->attrs[WGDEVICE_A_I3]));
+		if (ret) {
+			net_dbg_ratelimited("%s: I3-packet invalid format\n", wg->dev->name);
+			goto out;
+		}
 	}
 
 	if (info->attrs[WGDEVICE_A_I4]) {
 		wg->advanced_security = true;
-		kfree(wg->ispecs[3].desc);
-		wg->ispecs[3].desc = kstrdup(nla_data(info->attrs[WGDEVICE_A_I4]), GFP_KERNEL);
+		ret = jp_spec_setup(&wg->ispecs[3], nla_data(info->attrs[WGDEVICE_A_I4]));
+		if (ret) {
+			net_dbg_ratelimited("%s: I4-packet invalid format\n", wg->dev->name);
+			goto out;
+		}
 	}
 
 	if (info->attrs[WGDEVICE_A_I5]) {
 		wg->advanced_security = true;
-		kfree(wg->ispecs[4].desc);
-		wg->ispecs[4].desc = kstrdup(nla_data(info->attrs[WGDEVICE_A_I5]), GFP_KERNEL);
+		ret = jp_spec_setup(&wg->ispecs[4], nla_data(info->attrs[WGDEVICE_A_I5]));
+		if (ret) {
+			net_dbg_ratelimited("%s: I5-packet invalid format\n", wg->dev->name);
+			goto out;
+		}
 	}
 
 	if (flags & WGDEVICE_F_REPLACE_PEERS)

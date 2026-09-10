@@ -252,6 +252,7 @@ void jp_tag_free(struct jp_tag *tag)
 
 void jp_spec_free(struct jp_spec *spec)
 {
+	mutex_lock(&spec->lock);
 	kfree(spec->desc);
 	spec->desc = NULL;
 	kfree(spec->pkt);
@@ -260,16 +261,20 @@ void jp_spec_free(struct jp_spec *spec)
 	spec->mods = NULL;
 	spec->pkt_size = 0;
 	spec->mods_size = 0;
+	mutex_unlock(&spec->lock);
 }
 
-int jp_spec_setup(struct jp_spec *spec)
+int jp_spec_setup(struct jp_spec *spec, const char *str)
 {
 	int err = 0;
 	int pkt_size, mods_size;
 	struct jp_tag *tag, *tmp;
 	struct jp_modifier *mod;
-	char *buf;
+	char *buf = NULL, *desc = NULL;
 	LIST_HEAD(head);
+
+	if (!str)
+		return 0;
 
 	mutex_lock(&spec->lock);
 
@@ -280,67 +285,84 @@ int jp_spec_setup(struct jp_spec *spec)
 	spec->pkt_size = 0;
 	spec->mods_size = 0;
 
-	if (spec->desc == NULL) {
-		mutex_unlock(&spec->lock);
-		return 0;
-	}
-
-	buf = kstrdup(spec->desc, GFP_KERNEL);
-	if (!buf) {
-		err = -ENOMEM;
-		goto error;
-	}
-
-	err = jp_parse_tags(buf, &head);
-	if (err)
-		goto error;
-
-	pkt_size = 0;
-	mods_size = 0;
-
-	list_for_each_entry(tag, &head, head) {
-		pkt_size += tag->pkt_size;
-
-		if (tag->func)
-			++mods_size;
-	}
-
-	if (pkt_size > MESSAGE_MAX_SIZE) {
-		err = -EINVAL;
-		goto error;
-	}
-
-	spec->pkt = kzalloc(pkt_size, GFP_KERNEL);
-	spec->mods = kzalloc(mods_size * sizeof(*spec->mods), GFP_KERNEL);
-	if (!spec->pkt || !spec->mods) {
-		err = -ENOMEM;
-		goto error;
-	}
-
-	list_for_each_entry_reverse(tag, &head, head) {
-		if (tag->pkt)
-			memcpy(spec->pkt + spec->pkt_size, tag->pkt, tag->pkt_size);
-
-		if (tag->func) {
-			mod = spec->mods + spec->mods_size;
-			mod->func = tag->func;
-			mod->buf = spec->pkt + spec->pkt_size;
-			mod->buf_len = tag->pkt_size;
-
-			spec->mods_size++;
+	if (*str) {
+		desc = kstrdup(str, GFP_KERNEL);
+		if (!desc) {
+			err = -ENOMEM;
+			goto error;
 		}
 
-		spec->pkt_size += tag->pkt_size;
+		buf = kstrdup(desc, GFP_KERNEL);
+		if (!buf) {
+			err = -ENOMEM;
+			goto error;
+		}
+
+		err = jp_parse_tags(buf, &head);
+		if (err)
+			goto error;
+
+		pkt_size = 0;
+		mods_size = 0;
+
+		list_for_each_entry(tag, &head, head) {
+			pkt_size += tag->pkt_size;
+
+			if (tag->func)
+				++mods_size;
+		}
+
+		if (pkt_size > MESSAGE_MAX_SIZE) {
+			err = -EINVAL;
+			goto error;
+		}
+
+		if (pkt_size > 0) {
+			spec->pkt = kzalloc(pkt_size, GFP_KERNEL);
+			if (!spec->pkt) {
+				err = -ENOMEM;
+				goto error;
+			}
+		}
+
+		if (mods_size > 0) {
+			spec->mods = kzalloc(mods_size * sizeof(*spec->mods), GFP_KERNEL);
+			if (!spec->mods) {
+				err = -ENOMEM;
+				goto error;
+			}
+		}
+
+		list_for_each_entry_reverse(tag, &head, head) {
+			if (tag->pkt)
+				memcpy(spec->pkt + spec->pkt_size, tag->pkt, tag->pkt_size);
+
+			if (tag->func) {
+				mod = spec->mods + spec->mods_size;
+				mod->func = tag->func;
+				mod->buf = spec->pkt + spec->pkt_size;
+				mod->buf_len = tag->pkt_size;
+
+				spec->mods_size++;
+			}
+
+			spec->pkt_size += tag->pkt_size;
+		}
 	}
 
+	kfree(spec->desc);
+	spec->desc = desc;
+
 error:
+	mutex_unlock(&spec->lock);
 	list_for_each_entry_safe(tag, tmp, &head, head) {
 		jp_tag_free(tag);
 		list_del(&tag->head);
 		kfree(tag);
 	}
 	kfree(buf);
-	mutex_unlock(&spec->lock);
+	if (err)
+		kfree(desc);
 	return err;
 }
 
