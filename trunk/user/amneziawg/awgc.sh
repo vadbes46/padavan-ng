@@ -93,12 +93,16 @@ awg_setdns()
 
 	if [ "$getdns" = "2" ]; then
 		sed -i "/nameserver/d" /etc/resolv.conf
-		echo "nameserver 127.0.0.1" >> /etc/resolv.conf
 	fi
 
 	for i in $(echo "$IF_DNS" | tr ',' '\n'); do
 		grep -qE "nameserver ${i}\s*$" /etc/resolv.conf \
 			|| echo "nameserver $i" >> /etc/resolv.conf
+		if [ "$IPBB" ]; then
+			ip route add "$i" dev $IF_NAME 2>/dev/null
+		else
+			ip route add "$i" dev $IF_NAME table $TABLE 2>/dev/null
+		fi
 	done
 
 	restart_dns
