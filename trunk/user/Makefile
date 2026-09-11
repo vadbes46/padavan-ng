@@ -78,6 +78,7 @@ dir_n =
 dir_  =
 
 dir_$(CONFIG_FIRMWARE_INCLUDE_NFQWS)		+= nfqws
+dir_$(CONFIG_FIRMWARE_INCLUDE_ZAPRET2)		+= zapret2
 dir_y						+= ralinkiappd
 dir_y						+= busybox
 dir_y						+= iptables

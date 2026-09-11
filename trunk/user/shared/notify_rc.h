@@ -63,6 +63,7 @@
 #define RCN_RESTART_DOH			"restart_doh"
 #define RCN_RESTART_STUBBY		"restart_stubby"
 #define RCN_RESTART_ZAPRET		"restart_zapret"
+#define RCN_RESTART_ZAPRET2		"restart_zapret2"
 #define RCN_RESTART_TOR			"restart_tor"
 #define RCN_RESTART_PRIVOXY		"restart_privoxy"
 #define RCN_RESTART_DNSCRYPT		"restart_dnscrypt"

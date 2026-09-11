@@ -36,6 +36,7 @@ $j(document).ready(function() {
 	init_itoggle('doh_enable', change_doh_enabled);
 	init_itoggle('stubby_enable', change_stubby_enabled);
 	init_itoggle('zapret_enable', change_zapret_enabled);
+	init_itoggle('zapret2_enable', change_zapret2_enabled);
 	init_itoggle('tor_enable', change_tor_enabled);
 	init_itoggle('privoxy_enable', change_privoxy_enabled);
 	init_itoggle('dnscrypt_enable', change_dnscrypt_enabled);
@@ -95,7 +96,7 @@ function initial(){
 		showhide_div('row_iperf3', 0);
 	}
 
-	if(found_app_doh() || found_app_stubby() || found_app_zapret() || found_app_tor() || found_app_privoxy() || found_app_dnscrypt()){
+	if(found_app_doh() || found_app_stubby() || found_app_zapret() || found_app_zapret2() || found_app_tor() || found_app_privoxy() || found_app_dnscrypt()){
 		showhide_div('tbl_anon', 1);
 	}
 
@@ -135,6 +136,13 @@ function initial(){
 		showhide_div('row_zapret_service', 0);
 	}else{
 		change_zapret_enabled();
+	}
+
+	if(!found_app_zapret2()){
+		showhide_div('row_zapret2', 0);
+		showhide_div('row_zapret2_service', 0);
+	}else{
+		change_zapret2_enabled();
 	}
 
 	if(!found_app_tor()){
@@ -195,6 +203,11 @@ function applyRule(){
 	if(!found_app_zapret()){
 		showhide_div('row_zapret', 0);
 		showhide_div('row_zapret_service', 0);
+	}
+
+	if(!found_app_zapret2()){
+		showhide_div('row_zapret2', 0);
+		showhide_div('row_zapret2_service', 0);
 	}
 
 	if(!found_app_tor()){
@@ -278,6 +291,17 @@ function textarea_zapret_enabled(v){
 	inputCtrl(document.form['zapretc.auto.list'], v);
 	inputCtrl(document.form['zapretc.exclude.list'], v);
 	inputCtrl(document.form['zapretc.post_script.sh'], v);
+}
+
+function textarea_zapret2_enabled(v){
+	for (const i of ["", 0, 1, 2, 3]) {
+		inputCtrl(document.form['zapret2c.strategy' + i], v);
+	}
+	zapret2_strategy_change(document.form.zapret2_strategy, v);
+	inputCtrl(document.form['zapret2c.user.list'], v);
+	inputCtrl(document.form['zapret2c.auto.list'], v);
+	inputCtrl(document.form['zapret2c.exclude.list'], v);
+	inputCtrl(document.form['zapret2c.post_script.sh'], v);
 }
 
 function textarea_tor_enabled(v){
@@ -409,6 +433,12 @@ function change_stubby_enabled(){
 
 function change_zapret_enabled(){
 	var v = document.form.zapret_enable[0].checked;
+	if (v && typeof found_app_zapret2 === 'function' && found_app_zapret2() && document.form.zapret2_enable && document.form.zapret2_enable[0].checked) {
+		document.form.zapret2_enable[1].checked = true;
+		$j('#zapret2_enable_fake').prop('checked', false);
+		$j('#zapret2_enable_on_of .i-switch').removeClass('i-switch-on');
+		change_zapret2_enabled();
+	}
 	showhide_div('row_zapret_service', v);
 	if (!login_safe()) v = 0;
 	textarea_zapret_enabled(v);
@@ -471,6 +501,76 @@ function change_zapret_enabled(){
 	});
 }
 
+function change_zapret2_enabled(){
+	var v = document.form.zapret2_enable[0].checked;
+	if (v && typeof found_app_zapret === 'function' && found_app_zapret() && document.form.zapret_enable && document.form.zapret_enable[0].checked) {
+		document.form.zapret_enable[1].checked = true;
+		$j('#zapret_enable_fake').prop('checked', false);
+		$j('#zapret_enable_on_of .i-switch').removeClass('i-switch-on');
+		change_zapret_enabled();
+	}
+	showhide_div('row_zapret2_service', v);
+	if (!login_safe()) v = 0;
+	textarea_zapret2_enabled(v);
+
+	var zapret2_iface = "<% nvram_get_x("", "zapret2_iface"); %>";
+	zapret2_iface.replace(/\s+/g, '');
+	var iface = net_iface_list();
+
+	const map_zapret2_iface = zapret2_iface.split(',').map(word => word);
+	const map_iface = iface.split(',').map(word => word);
+	iface = map_iface.filter(word => !map_zapret2_iface.includes(word)).join(',').replace(/\s+/g, '');
+
+	const data_iface = [
+		...zapret2_iface.split(',').filter(Boolean).map(text => ({text, checked: true})),
+		...iface.split(',').filter(Boolean).map(text => ({text, checked: false}))
+	];
+
+	$j('#zapret2_iface_list').multiSelectDropdown({
+		items: data_iface,
+		placeholder: "<#APChnAuto#>",
+		width: '220px',
+		allowDelete: false,
+		allowAdd: false,
+		addSuggestionText: '<#CTL_add#>',
+		removeSpaces: true,
+		allowedItems: '^[a-zA-Z0-9-_.:]+$',
+		allowedAlert: '<#JS_field_noletter#>',
+		onChange: function(selected){
+			document.form.zapret2_iface.value = selected.join(',');
+		}
+	});
+
+	var zapret2_clients_allowed = "<% nvram_get_x("", "zapret2_clients_allowed"); %>";
+	zapret2_clients_allowed.replace(/\s+/g, '');
+	var zapret2_clients = "<% nvram_get_x("", "zapret2_clients"); %>";
+
+	const map_zapret2_clients_allowed = zapret2_clients_allowed.split(',').map(word => word);
+	const map_zapret2_clients = zapret2_clients.split(',').map(word => word);
+	zapret2_clients = map_zapret2_clients.filter(word => !map_zapret2_clients_allowed.includes(word)).join(',').replace(/\s+/g, '');
+
+	const data_clients = [
+		...zapret2_clients_allowed.split(',').filter(Boolean).map(text => ({text, checked: true})),
+		...zapret2_clients.split(',').filter(Boolean).map(text => ({text, checked: false}))
+	];
+
+	$j('#zapret2_clients_list').multiSelectDropdown({
+		items: data_clients,
+		placeholder: "<#ZapretWORestrictions#>",
+		width: '220px',
+		allowDelete: true,
+		allowAdd: true,
+		addSuggestionText: '<#CTL_add#>',
+		removeSpaces: true,
+		allowedItems: '^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?:\/([0-9]|[1-2][0-9]|3[0-2]))?$',
+		allowedAlert: '<#LANHostConfig_x_DDNS_alarm_9#>',
+		onChange: function(selected){
+			document.form.zapret2_clients_allowed.value = selected.join(',');
+			document.form.zapret2_clients.value = this.multiSelectDropdown('getAllItems').map(item => item.text).join(',');
+		}
+	});
+}
+
 function change_tor_enabled(){
 	var v = document.form.tor_enable[0].checked;
 	showhide_div('row_tor_conf', v);
@@ -512,6 +612,13 @@ function zapret_strategy_change(o, v) {
 		showhide_div('zapretc.strategy' + i, 0);
 	}
 	if (v == 1) showhide_div('zapretc.strategy' + o.value, 1);
+}
+
+function zapret2_strategy_change(o, v) {
+	for (const i of ["", 0, 1, 2, 3]) {
+		showhide_div('zapret2c.strategy' + i, 0);
+	}
+	if (v == 1) showhide_div('zapret2c.strategy' + o.value, 1);
 }
 
 </script>
@@ -950,6 +1057,11 @@ function zapret_strategy_change(o, v) {
                                             <td colspan="2" style="padding: 0; border: 0;">
                                                 <table height="100%" width="100%" cellpadding="0" cellspacing="0" class="table" style="border: 0px; margin: 0px;">
                                                     <tr>
+                                                        <td colspan="2" style="background-color: #2b2b2b; color: #ffc107; padding: 6px 12px; font-size: 11px;">
+                                                            <i class="icon-info-sign"></i> <#ZapretExclusiveNotice#>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
                                                         <th><#PPPConnection_x_WANType_statusname#>:</th>
                                                         <td>
                                                             <span id="zapret_iface_list"></span>
@@ -1052,6 +1164,119 @@ function zapret_strategy_change(o, v) {
                                             </td>
                                         </tr>
 
+                                        <tr id="row_zapret2">
+                                            <th width="50%"><a class="help_tooltip" href="javascript:void(0);" onmouseover="openTooltip(this, 25, 4);"><#Adm_Svc_zapret2#></a> <span class="label label-success">NEW</span></th>
+                                            <td>
+                                                <div class="main_itoggle">
+                                                    <div id="zapret2_enable_on_of">
+                                                        <input type="checkbox" id="zapret2_enable_fake" <% nvram_match_x("", "zapret2_enable", "1", "value=1 checked"); %><% nvram_match_x("", "zapret2_enable", "0", "value=0"); %>>
+                                                    </div>
+                                                </div>
+                                                <div style="position: absolute; margin-left: -10000px;">
+                                                    <input type="radio" name="zapret2_enable" id="zapret2_enable_1" class="input" value="1" <% nvram_match_x("", "zapret2_enable", "1", "checked"); %>/><#checkbox_Yes#>
+                                                    <input type="radio" name="zapret2_enable" id="zapret2_enable_0" class="input" value="0" <% nvram_match_x("", "zapret2_enable", "0", "checked"); %>/><#checkbox_No#>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr id="row_zapret2_service" style="display:none">
+                                            <td colspan="2" style="padding: 0; border: 0;">
+                                                <table height="100%" width="100%" cellpadding="0" cellspacing="0" class="table" style="border: 0px; margin: 0px;">
+                                                    <tr>
+                                                        <td colspan="2" style="background-color: #2b2b2b; color: #ffc107; padding: 6px 12px; font-size: 11px;">
+                                                            <i class="icon-info-sign"></i> <#ZapretExclusiveNotice#>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th><#PPPConnection_x_WANType_statusname#>:</th>
+                                                        <td>
+                                                            <span id="zapret2_iface_list"></span>
+                                                            <input type="hidden" name="zapret2_iface" value="<% nvram_get_x("", "zapret2_iface"); %>">
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th><#ZapretAllowedClients#>:</th>
+                                                        <td>
+                                                            <span id="zapret2_clients_list"></span>
+                                                            <input type="hidden" name="zapret2_clients" value="<% nvram_get_x("", "zapret2_clients"); %>">
+                                                            <input type="hidden" name="zapret2_clients_allowed" value="<% nvram_get_x("", "zapret2_clients_allowed"); %>">
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th><#ZapretLog#>:</th>
+                                                        <td>
+                                                            <select name="zapret2_log" class="input">
+                                                                <option value="0" <% nvram_match_x("", "zapret2_log", "0","selected"); %>><#CTL_Disabled#></option>
+                                                                <option value="1" <% nvram_match_x("", "zapret2_log", "1","selected"); %>><#CTL_Enabled#></option>
+                                                            </select>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th width="50%" style="border-bottom: 0 none;"><a href="javascript:spoiler_toggle('zapret2.strategy')"><#ZapretStrategy#>: <i style="scale: 75%;" class="icon-chevron-down"></i></a></th>
+                                                        <td style="border-bottom: 0 none;">
+                                                            <select name="zapret2_strategy" class="input" onchange="zapret2_strategy_change(this, 1);">
+                                                                <option value="" <% nvram_match_x("", "zapret2_strategy", "","selected"); %>><#ZapretDefaultProfile#></option>
+                                                                <option value="0" <% nvram_match_x("", "zapret2_strategy", "0","selected"); %>><#ZapretStrategyProfile#> #0 (Multidisorder)</option>
+                                                                <option value="1" <% nvram_match_x("", "zapret2_strategy", "1","selected"); %>><#ZapretStrategyProfile#> #1 (YouTube & Discord)</option>
+                                                                <option value="2" <% nvram_match_x("", "zapret2_strategy", "2","selected"); %>><#ZapretStrategyProfile#> #2 (Fake TLS + Badseq)</option>
+                                                                <option value="3" <% nvram_match_x("", "zapret2_strategy", "3","selected"); %>><#ZapretStrategyProfile#> #3 (Custom Lua)</option>
+                                                            </select>
+                                                            <a href="https://github.com/bol-van/zapret2" target="_blank" rel="noreferrer noopener" class="label label-info"><#CTL_help#></a>
+                                                        </td>
+                                                        <tr>
+                                                            <td id="zapret2.strategy" colspan="2" style="padding-top: 0px; border-top: 0 none; display:none;">
+                                                                <div id="zapret2_strategy_textarea">
+                                                                    <textarea rows="16" wrap="off" spellcheck="false" maxlength="8192" class="span12" id="zapret2c.strategy" name="zapret2c.strategy" style="resize:vertical; font-family:'Courier New'; font-size:12px;"><% nvram_dump("zapret2c.strategy",""); %></textarea>
+                                                                    <textarea rows="16" wrap="off" spellcheck="false" maxlength="8192" class="span12" id="zapret2c.strategy0" name="zapret2c.strategy0" style="display:none; resize:vertical; font-family:'Courier New'; font-size:12px;"><% nvram_dump("zapret2c.strategy0",""); %></textarea>
+                                                                    <textarea rows="16" wrap="off" spellcheck="false" maxlength="8192" class="span12" id="zapret2c.strategy1" name="zapret2c.strategy1" style="display:none; resize:vertical; font-family:'Courier New'; font-size:12px;"><% nvram_dump("zapret2c.strategy1",""); %></textarea>
+                                                                    <textarea rows="16" wrap="off" spellcheck="false" maxlength="8192" class="span12" id="zapret2c.strategy2" name="zapret2c.strategy2" style="display:none; resize:vertical; font-family:'Courier New'; font-size:12px;"><% nvram_dump("zapret2c.strategy2",""); %></textarea>
+                                                                    <textarea rows="16" wrap="off" spellcheck="false" maxlength="8192" class="span12" id="zapret2c.strategy3" name="zapret2c.strategy3" style="display:none; resize:vertical; font-family:'Courier New'; font-size:12px;"><% nvram_dump("zapret2c.strategy3",""); %></textarea>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    </tr>
+                                                    <tr>
+                                                        <td colspan="2">
+                                                            <a href="javascript:spoiler_toggle('site2.list')"><span><#ZapretDomainLists#>:</span> <i style="scale: 75%;" class="icon-chevron-down"></i></a>
+                                                            <div id="site2.list" style="display:none;">
+                                                                <table height="100%" width="100%" cellpadding="0" cellspacing="0" class="table" style="border: 0px; margin: 0px; margin-bottom: 8px;">
+                                                                    <tr>
+                                                                        <td style="border:0px; padding-bottom: 4px;">
+                                                                            <#ZapretCustomList#>:
+                                                                        </td>
+                                                                        <td style="border:0px; padding-bottom: 4px; padding-left: 11px;">
+                                                                            <#ZapretAutomaticList#>:
+                                                                        </td>
+                                                                        <td style="border:0px; padding-bottom: 4px; padding-left: 13px;">
+                                                                            <#ZapretExclusionList#>:
+                                                                        </td>
+                                                                    </tr>
+                                                                    <tr height="100%">
+                                                                        <td style="border:0px; width: 33%; padding: 0px; padding-right: 5px; vertical-align: top;">
+                                                                            <textarea rows="16" wrap="off" spellcheck="false" maxlength="32768" class="span12" name="zapret2c.user.list" style="height: 100%; margin-bottom: 0px; resize:vertical; font-family:'Courier New'; font-size:12px;"><% nvram_dump("zapret2c.user.list",""); %></textarea>
+                                                                        </td>
+                                                                        <td style="border:0px; width: 33%; padding: 0px; padding-left: 3px; padding-right: 3px; vertical-align: top;">
+                                                                            <textarea rows="16" wrap="off" spellcheck="false" maxlength="32768" class="span12" name="zapret2c.auto.list" style="height: 100%; margin-bottom: 0px; resize:vertical; font-family:'Courier New'; font-size:12px;"><% nvram_dump("zapret2c.auto.list",""); %></textarea>
+                                                                        </td>
+                                                                        <td style="border:0px; width: 33%; padding: 0px; padding-left: 5px; vertical-align: top;">
+                                                                            <textarea rows="16" wrap="off" spellcheck="false" maxlength="32768" class="span12" name="zapret2c.exclude.list" style="height: 100%; margin-bottom: 0px; resize:vertical; font-family:'Courier New'; font-size:12px;"><% nvram_dump("zapret2c.exclude.list",""); %></textarea>
+                                                                        </td>
+                                                                    </tr>
+                                                                </table>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td colspan="2">
+                                                            <a href="javascript:spoiler_toggle('zapret2.post_script')"><span><#ZapretPostScript#>:</span> <i style="scale: 75%;" class="icon-chevron-down"></i></a>
+                                                            <div id="zapret2.post_script" style="display:none;">
+                                                                <textarea rows="16" wrap="off" spellcheck="false" maxlength="8192" class="span12" name="zapret2c.post_script.sh" style="resize:vertical; font-family:'Courier New'; font-size:12px;"><% nvram_dump("zapret2c.post_script.sh",""); %></textarea>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+
                                         <tr id="row_tor">
                                             <th width="50%"><#Adm_Svc_tor#></th>
                                             <td>
@@ -1123,7 +1348,7 @@ function zapret_strategy_change(o, v) {
                                         </tr>
 
                                         <tr id="row_dnscrypt">
-                                            <th width="50%"><a class="help_tooltip" href="javascript:void(0);" onmouseover="openTooltip(this, 25, 4);"><#Adm_Svc_dnscrypt#></a></th>
+                                            <th width="50%"><a class="help_tooltip" href="javascript:void(0);" onmouseover="openTooltip(this, 25, 5);"><#Adm_Svc_dnscrypt#></a></th>
                                             <td>
                                                 <div class="main_itoggle">
                                                     <div id="dnscrypt_enable_on_of">
@@ -1165,7 +1390,7 @@ function zapret_strategy_change(o, v) {
                                             </td>
                                         </tr>
                                         <tr id="row_dnscrypt_force_dns" style="display:none;">
-                                            <th width="50%"><a class="help_tooltip" href="javascript:void(0);" onmouseover="openTooltip(this, 25, 5);"><#Adm_Svc_dnscrypt_force_dns#></a></th>
+                                            <th width="50%"><a class="help_tooltip" href="javascript:void(0);" onmouseover="openTooltip(this, 25, 6);"><#Adm_Svc_dnscrypt_force_dns#></a></th>
                                             <td>
                                                 <select name="dnscrypt_force_dns" class="input">
                                                     <option value="0" <% nvram_match_x("", "dnscrypt_force_dns", "0", "selected"); %>><#checkbox_No#> (*)</option>
@@ -1174,7 +1399,7 @@ function zapret_strategy_change(o, v) {
                                             </td>
                                         </tr>
                                         <tr id="row_dnscrypt_options" style="display:none">
-                                            <th width="50%"><a class="help_tooltip" href="javascript:void(0);" onmouseover="openTooltip(this, 25, 6);"><#Adm_Svc_dnscrypt_options#></a></th>
+                                            <th width="50%"><a class="help_tooltip" href="javascript:void(0);" onmouseover="openTooltip(this, 25, 7);"><#Adm_Svc_dnscrypt_options#></a></th>
                                             <td>
                                                 <input type="text" maxlength="128" size="15" name="dnscrypt_options" class="input" value="<% nvram_get_x("", "dnscrypt_options"); %>" onkeypress="return is_string(this,event);"/>
                                             </td>

@@ -560,6 +560,13 @@ void start_zapret(void);
 void restart_zapret(void);
 void reload_zapret(void);
 #endif
+#if defined(APP_ZAPRET2)
+int is_zapret2_run(void);
+void stop_zapret2(void);
+void start_zapret2(void);
+void restart_zapret2(void);
+void reload_zapret2(void);
+#endif
 #if defined(APP_TOR)
 int is_tor_run(void);
 void stop_tor(void);

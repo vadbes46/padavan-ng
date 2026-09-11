@@ -1248,6 +1248,12 @@ handle_notifications(void)
 			restart_zapret();
 		}
 #endif
+#if defined(APP_ZAPRET2)
+		else if (strcmp(entry->d_name, RCN_RESTART_ZAPRET2) == 0)
+		{
+			restart_zapret2();
+		}
+#endif
 #if defined(APP_TOR)
 		else if (strcmp(entry->d_name, RCN_RESTART_TOR) == 0)
 		{

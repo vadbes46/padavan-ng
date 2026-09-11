@@ -776,6 +776,10 @@ reload_nat_modules(void)
 
 #if defined (USE_SFE)
 	int zapret_enable = nvram_safe_get_int("zapret_enable", 0, 0, 1);
+#if defined (APP_ZAPRET2)
+	if (!zapret_enable)
+		zapret_enable = nvram_safe_get_int("zapret2_enable", 0, 0, 1);
+#endif
 	int sfe_enable = nvram_safe_get_int("sfe_enable", 0, 0, 2);
 	int sfe_loaded = is_module_loaded("fast_classifier");
 
@@ -816,6 +820,9 @@ restart_firewall(void)
 
 #if defined(APP_ZAPRET)
 	reload_zapret();
+#endif
+#if defined(APP_ZAPRET2)
+	reload_zapret2();
 #endif
 }
 

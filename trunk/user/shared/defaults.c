@@ -652,6 +652,14 @@ struct nvram_pair router_defaults[] = {
 	{ "zapret_clients", "192.168.1.0/24" },
 	{ "zapret_clients_allowed", "" },
 #endif
+#if defined (APP_ZAPRET2)
+	{ "zapret2_enable", "0" },
+	{ "zapret2_strategy", "0" },
+	{ "zapret2_iface", "" },
+	{ "zapret2_log", "0" },
+	{ "zapret2_clients", "192.168.1.0/24" },
+	{ "zapret2_clients_allowed", "" },
+#endif
 #if defined (APP_TOR)
 	{ "tor_enable", "0" },
 #endif

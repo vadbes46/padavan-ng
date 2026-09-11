@@ -575,6 +575,23 @@
 			{"zapretc.exclude.list", "File", NULL, EVM_BLOCK_UNSAFE},
 			{"zapretc.post_script.sh", "File", NULL, EVM_BLOCK_UNSAFE},
 #endif
+#if defined(APP_ZAPRET2)
+			{"zapret2_enable", "", NULL, EVM_RESTART_ZAPRET2},
+			{"zapret2_iface", "", NULL, EVM_RESTART_ZAPRET2},
+			{"zapret2_log", "", NULL, EVM_RESTART_ZAPRET2},
+			{"zapret2_strategy", "", NULL, EVM_RESTART_ZAPRET2},
+			{"zapret2_clients", "", NULL, EVM_RESTART_ZAPRET2},
+			{"zapret2_clients_allowed", "", NULL, EVM_RESTART_ZAPRET2},
+			{"zapret2c.strategy", "File", NULL, EVM_RESTART_ZAPRET2|EVM_BLOCK_UNSAFE},
+			{"zapret2c.strategy0", "File", NULL, EVM_RESTART_ZAPRET2|EVM_BLOCK_UNSAFE},
+			{"zapret2c.strategy1", "File", NULL, EVM_RESTART_ZAPRET2|EVM_BLOCK_UNSAFE},
+			{"zapret2c.strategy2", "File", NULL, EVM_RESTART_ZAPRET2|EVM_BLOCK_UNSAFE},
+			{"zapret2c.strategy3", "File", NULL, EVM_RESTART_ZAPRET2|EVM_BLOCK_UNSAFE},
+			{"zapret2c.auto.list", "File", NULL, EVM_BLOCK_UNSAFE},
+			{"zapret2c.user.list", "File", NULL, EVM_BLOCK_UNSAFE},
+			{"zapret2c.exclude.list", "File", NULL, EVM_BLOCK_UNSAFE},
+			{"zapret2c.post_script.sh", "File", NULL, EVM_BLOCK_UNSAFE},
+#endif
 #if defined(APP_TOR)
 			{"tor_enable", "", NULL, EVM_RESTART_TOR},
 			{"torconf.torrc", "File", NULL, EVM_RESTART_TOR|EVM_BLOCK_UNSAFE},
@@ -1047,6 +1064,9 @@
 #endif
 #if defined(APP_ZAPRET)
 		{EVM_RESTART_ZAPRET,		EVT_RESTART_ZAPRET,		RCN_RESTART_ZAPRET,	0},
+#endif
+#if defined(APP_ZAPRET2)
+		{EVM_RESTART_ZAPRET2,		EVT_RESTART_ZAPRET2,		RCN_RESTART_ZAPRET2,	0},
 #endif
 #if defined(APP_TOR)
 		{EVM_RESTART_TOR,		EVT_RESTART_TOR,		RCN_RESTART_TOR,	EVM_RESTART_FIREWALL},

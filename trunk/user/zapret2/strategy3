@@ -1,0 +1,3 @@
+# Profile 3: Custom Lua Strategy
+--filter-tcp=80 --filter-l7=http <HOSTLIST> --payload=http_req --lua-desync=multisplit:pos=method+2 --new
+--filter-tcp=443 --filter-l7=tls <HOSTLIST> --payload=tls_client_hello --lua-desync=multidisorder:pos=1,midsld --new

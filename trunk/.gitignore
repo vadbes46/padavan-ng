@@ -59,7 +59,7 @@ linux-3.4.x/net/nat/hw_nat/*.c
 # Active board and subpackage configuration
 /.config
 /.config.old
-Makefile
+/Makefile
 user/*/*/.config
 user/*/*/.config.old
 libs/*/*/.config
@@ -77,6 +77,8 @@ libs/libz/zlib-*/
 user/wireguard/wireguard-tools-*/
 user/amneziawg/amnezia-*/wg
 user/samba36/samba-*/
+user/zapret2/zapret2-*/
+user/zapret2/*.tar.gz
 tools/lzma/7zip-*/
 tools/mksquashfs_xz/xz-*/
 linux-3.4.x/drivers/net/wireless/ralink/mt76x2/

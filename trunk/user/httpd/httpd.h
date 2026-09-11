@@ -37,6 +37,7 @@
 #define STORAGE_PRIVOXY_DIR	"/etc/storage/privoxy"
 #define STORAGE_STUBBY_DIR	"/etc/storage/stubby"
 #define STORAGE_ZAPRET_DIR	"/etc/storage/zapret"
+#define STORAGE_ZAPRET2_DIR	"/etc/storage/zapret2"
 
 #define PROFILE_FIFO_UPLOAD	"/tmp/settings_u.prf"
 #define PROFILE_FIFO_DOWNLOAD	"/tmp/settings_d.prf"

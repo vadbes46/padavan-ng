@@ -554,8 +554,8 @@ if [ "$CONFIG_FIRMWARE_INCLUDE_SHORTCUT_FE" = "y" ]; then
 	func_enable_kernel_param "CONFIG_NF_CONNTRACK_EVENTS"
 	func_enable_kernel_param "CONFIG_NF_CONNTRACK_CHAIN_EVENTS"
 fi
-############################## NFQWS SUPPORT ##########################
-if [ "$CONFIG_FIRMWARE_INCLUDE_NFQWS" = "y" ] ; then
+############################## NFQWS / ZAPRET2 SUPPORT ##########################
+if [ "$CONFIG_FIRMWARE_INCLUDE_NFQWS" = "y" ] || [ "$CONFIG_FIRMWARE_INCLUDE_ZAPRET2" = "y" ] ; then
 	func_enable_kernel_param "CONFIG_NETFILTER_NETLINK"
 	func_enable_kernel_param "CONFIG_NETFILTER_NETLINK_QUEUE"
 	func_enable_kernel_param "CONFIG_NETFILTER_XT_TARGET_NFQUEUE"

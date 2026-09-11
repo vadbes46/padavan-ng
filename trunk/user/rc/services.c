@@ -342,8 +342,12 @@ void stop_zapret(void){
 
 void start_zapret(void){
 	int zapret_mode = nvram_get_int("zapret_enable");
-	if (zapret_mode == 1)
+	if (zapret_mode == 1) {
+#if defined(APP_ZAPRET2)
+		stop_zapret2();
+#endif
 		eval("/usr/bin/zapret.sh", "start");
+	}
 }
 
 void restart_zapret(void){
@@ -355,6 +359,41 @@ void reload_zapret(void){
 	int zapret_mode = nvram_get_int("zapret_enable");
 	if (zapret_mode == 1)
 		eval("/usr/bin/zapret.sh", "reload");
+}
+#endif
+#if defined(APP_ZAPRET2)
+int is_zapret2_run(void){
+	if (check_if_file_exist("/usr/bin/nfqws2"))
+	{
+		if (pids("nfqws2"))
+			return 1;
+	}
+	return 0;
+}
+
+void stop_zapret2(void){
+	eval("/usr/bin/zapret2.sh", "stop");
+}
+
+void start_zapret2(void){
+	int zapret2_mode = nvram_get_int("zapret2_enable");
+	if (zapret2_mode == 1) {
+#if defined(APP_ZAPRET)
+		stop_zapret();
+#endif
+		eval("/usr/bin/zapret2.sh", "start");
+	}
+}
+
+void restart_zapret2(void){
+	stop_zapret2();
+	start_zapret2();
+}
+
+void reload_zapret2(void){
+	int zapret2_mode = nvram_get_int("zapret2_enable");
+	if (zapret2_mode == 1)
+		eval("/usr/bin/zapret2.sh", "reload");
 }
 #endif
 #if defined(APP_TOR)
@@ -731,6 +770,9 @@ start_services_once(int is_ap_mode)
 #if defined(APP_ZAPRET)
 	start_zapret();
 #endif
+#if defined(APP_ZAPRET2)
+	start_zapret2();
+#endif
 	system("/usr/bin/iappd.sh restart");
 	return 0;
 }
@@ -763,6 +805,9 @@ stop_services(int stopall)
 #endif
 #if defined(APP_ZAPRET)
 	stop_zapret();
+#endif
+#if defined(APP_ZAPRET2)
+	stop_zapret2();
 #endif
 #if defined(APP_TOR)
 	stop_tor();
