@@ -59,7 +59,7 @@ linux-3.4.x/net/nat/hw_nat/*.c
 # Active board and subpackage configuration
 /.config
 /.config.old
-/Makefile
+Makefile
 user/*/*/.config
 user/*/*/.config.old
 libs/*/*/.config

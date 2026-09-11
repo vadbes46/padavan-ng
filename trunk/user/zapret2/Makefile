@@ -16,7 +16,7 @@ extract_test:
 	fi )
 
 clean:
-	rm -rf $(SRC_NAME)
+	rm -rf $(SRC_NAME) $(SRC_ARCHIVE)
 
 romfs:
 	$(ROMFSINST) -p +x $(SRC_NAME)/binaries/linux-mipsel/nfqws2 /usr/bin/nfqws2
