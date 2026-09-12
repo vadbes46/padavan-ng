@@ -1,0 +1,36 @@
+SRC_VER = 1.14.0
+SRC_NAME = sing-box-$(SRC_VER)-linux-mipsle-softfloat
+SRC_ARCHIVE = $(SRC_NAME).tar.gz
+SRC_URL = https://github.com/SagerNet/sing-box/releases/download/v$(SRC_VER)/$(SRC_ARCHIVE)
+
+THISDIR = $(shell pwd)
+
+all: download_test extract_test
+
+download_test:
+	( if [ ! -f $(SRC_ARCHIVE) ]; then \
+		wget -t5 --timeout=30 --no-check-certificate -O $(SRC_ARCHIVE) $(SRC_URL) || rm -f $(SRC_ARCHIVE); \
+	fi )
+
+extract_test:
+	( if [ ! -d $(SRC_NAME) ]; then \
+		tar -zxf $(SRC_ARCHIVE); \
+	fi )
+
+clean:
+	rm -rf $(SRC_NAME) $(SRC_ARCHIVE) out
+
+romfs:
+	$(ROMFSINST) -p +x $(SRC_NAME)/sing-box /usr/bin/sing-box
+	$(ROMFSINST) -p +x sing-box.sh /usr/bin/sing-box.sh
+	mkdir -p $(ROMFSDIR)/etc_ro/sing-box
+	$(ROMFSINST) -d config.json.vless /etc_ro/sing-box/config.json.vless
+	$(ROMFSINST) -d config.json.hysteria2 /etc_ro/sing-box/config.json.hysteria2
+
+standalone: all
+	mkdir -p $(THISDIR)/out
+	cp -f $(SRC_NAME)/sing-box $(THISDIR)/out/sing-box
+	cp -f sing-box.sh $(THISDIR)/out/sing-box.sh
+	cp -f config.json.vless $(THISDIR)/out/config_vless.json
+	cp -f config.json.hysteria2 $(THISDIR)/out/config_hy2.json
+	@echo "Standalone sing-box package ready in $(THISDIR)/out"

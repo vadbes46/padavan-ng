@@ -79,6 +79,9 @@ user/amneziawg/amnezia-*/wg
 user/samba36/samba-*/
 user/zapret2/zapret2-*/
 user/zapret2/*.tar.gz
+user/sing-box/sing-box-*/
+user/sing-box/*.tar.gz
+user/sing-box/out/
 tools/lzma/7zip-*/
 tools/mksquashfs_xz/xz-*/
 linux-3.4.x/drivers/net/wireless/ralink/rt2860v2/
