@@ -34,6 +34,18 @@ rm -rfv $ROOTDIR/romfs
 rm -rfv $ROOTDIR/images
 rm -rfv $ROOTDIR/stage
 rm -f $ROOTDIR/build.log $ROOTDIR/../build.log
+rm -rf $ROOTDIR/linux-$kernel_id/drivers/net/wireless/ralink/rt2860v2 \
+       $ROOTDIR/linux-$kernel_id/drivers/net/wireless/ralink/rt3090 \
+       $ROOTDIR/linux-$kernel_id/drivers/net/wireless/ralink/rt5392 \
+       $ROOTDIR/linux-$kernel_id/drivers/net/wireless/ralink/rt5592 \
+       $ROOTDIR/linux-$kernel_id/drivers/net/wireless/ralink/rt3593 \
+       $ROOTDIR/linux-$kernel_id/drivers/net/wireless/ralink/mt7610 \
+       $ROOTDIR/linux-$kernel_id/drivers/net/wireless/ralink/mt76x2 \
+       $ROOTDIR/linux-$kernel_id/drivers/net/wireless/ralink/mt76x3 \
+       $ROOTDIR/linux-$kernel_id/drivers/net/wireless/ralink/mt7628 \
+       $ROOTDIR/linux-$kernel_id/drivers/net/wireless/ralink/mt7615
+rm -f $ROOTDIR/linux-$kernel_id/net/nat/hw_nat/*.c \
+      $ROOTDIR/linux-$kernel_id/net/nat/hw_nat/*.h
 
 if [ -d "$ROOTDIR/../.git" ]; then
 	echo "Restoring churned repository files..."

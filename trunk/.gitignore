@@ -81,8 +81,16 @@ user/zapret2/zapret2-*/
 user/zapret2/*.tar.gz
 tools/lzma/7zip-*/
 tools/mksquashfs_xz/xz-*/
+linux-3.4.x/drivers/net/wireless/ralink/rt2860v2/
+linux-3.4.x/drivers/net/wireless/ralink/rt3090/
+linux-3.4.x/drivers/net/wireless/ralink/rt5392/
+linux-3.4.x/drivers/net/wireless/ralink/rt5592/
+linux-3.4.x/drivers/net/wireless/ralink/rt3593/
+linux-3.4.x/drivers/net/wireless/ralink/mt7610/
 linux-3.4.x/drivers/net/wireless/ralink/mt76x2/
 linux-3.4.x/drivers/net/wireless/ralink/mt76x3/
+linux-3.4.x/drivers/net/wireless/ralink/mt7628/
+linux-3.4.x/drivers/net/wireless/ralink/mt7615/
 
 # Package-specific build outputs & gnulib artifacts
 libs/libcurl/curl-*/*
@@ -94,7 +102,13 @@ user/busybox/busybox-*/include/common_bufsiz.h.method
 user/e2fsprogs/e2fsprogs-*/scrub/*
 user/e2fsprogs/e2fsprogs-*/util/symlinks
 user/inadyn/inadyn-*/*
+user/iptables/iptables-*/extensions/libip6t_ah.*
+user/iptables/iptables-*/extensions/libipt_ah.*
+user/iptables/iptables-*/extensions/libxt_CLASSIFY.*
+user/iptables/iptables-*/extensions/libxt_esp.*
+user/iptables/iptables-*/extensions/libxt_IMQ.*
 user/iptables/iptables-*/extensions/libxt_physdev.*
+user/iptables/iptables-*/extensions/libxt_policy.*
 user/iptables/iptables-*/utils/nfnl_osf
 user/parted/parted-*/lib/*.h
 user/parted/parted-*/lib/sys/

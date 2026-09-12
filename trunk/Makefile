@@ -172,6 +172,17 @@ clean:
 	rm -rf $(IMAGEDIR)
 	rm -rf $(LINUXDIR)/net/ipsec/alg/libaes $(LINUXDIR)/net/ipsec/alg/perlasm
 	rm -f $(LINUXDIR)/arch/mips/ramdisk/*.gz
+	rm -rf $(LINUXDIR)/drivers/net/wireless/ralink/rt2860v2 \
+	       $(LINUXDIR)/drivers/net/wireless/ralink/rt3090 \
+	       $(LINUXDIR)/drivers/net/wireless/ralink/rt5392 \
+	       $(LINUXDIR)/drivers/net/wireless/ralink/rt5592 \
+	       $(LINUXDIR)/drivers/net/wireless/ralink/rt3593 \
+	       $(LINUXDIR)/drivers/net/wireless/ralink/mt7610 \
+	       $(LINUXDIR)/drivers/net/wireless/ralink/mt76x2 \
+	       $(LINUXDIR)/drivers/net/wireless/ralink/mt76x3 \
+	       $(LINUXDIR)/drivers/net/wireless/ralink/mt7628 \
+	       $(LINUXDIR)/drivers/net/wireless/ralink/mt7615
+	rm -f $(LINUXDIR)/net/nat/hw_nat/*.c $(LINUXDIR)/net/nat/hw_nat/*.h
 
 %_romfs:
 	@case "$(@)" in \

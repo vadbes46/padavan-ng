@@ -92,6 +92,13 @@ clean:
 	if [ -f $(SRC_NAME)/Makefile ] ; then \
 		$(MAKE) -C $(SRC_NAME) distclean ; \
 	fi ; \
+	rm -f $(THISDIR)/$(SRC_NAME)/extensions/libip6t_ah.* \
+	      $(THISDIR)/$(SRC_NAME)/extensions/libipt_ah.* \
+	      $(THISDIR)/$(SRC_NAME)/extensions/libxt_CLASSIFY.* \
+	      $(THISDIR)/$(SRC_NAME)/extensions/libxt_esp.* \
+	      $(THISDIR)/$(SRC_NAME)/extensions/libxt_IMQ.* \
+	      $(THISDIR)/$(SRC_NAME)/extensions/libxt_physdev.* \
+	      $(THISDIR)/$(SRC_NAME)/extensions/libxt_policy.*
 	rm -f config_done
 
 romfs:
