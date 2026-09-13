@@ -21,7 +21,9 @@ clean:
 	rm -rf $(SRC_NAME) $(SRC_ARCHIVE) out
 
 romfs:
-	$(ROMFSINST) -p +x $(SRC_NAME)/sing-box /usr/bin/sing-box
+	@if [ -n "$(FIRMWARE_MAXSIZE)" ] && [ $(FIRMWARE_MAXSIZE) -ge 60000000 ]; then \
+		$(ROMFSINST) -p +x $(SRC_NAME)/sing-box /usr/bin/sing-box ; \
+	fi
 	$(ROMFSINST) -p +x sing-box.sh /usr/bin/sing-box.sh
 	mkdir -p $(ROMFSDIR)/etc_ro/sing-box
 	$(ROMFSINST) -d config.json.vless /etc_ro/sing-box/config.json.vless

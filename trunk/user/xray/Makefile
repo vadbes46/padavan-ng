@@ -23,7 +23,9 @@ clean:
 	rm -rf $(XRAY_BIN) $(THISDIR)/src $(THISDIR)/out
 
 romfs:
-	$(ROMFSINST) -p +x $(XRAY_BIN) /usr/bin/xray
+	@if [ -n "$(FIRMWARE_MAXSIZE)" ] && [ $(FIRMWARE_MAXSIZE) -ge 60000000 ]; then \
+		$(ROMFSINST) -p +x $(XRAY_BIN) /usr/bin/xray ; \
+	fi
 	$(ROMFSINST) -p +x xray.sh /usr/bin/xray.sh
 	mkdir -p $(ROMFSDIR)/etc_ro/xray
 	$(ROMFSINST) -d config.json.vless /etc_ro/xray/config.json.vless

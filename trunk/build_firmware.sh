@@ -136,22 +136,11 @@ fi
 
 if [ "$CONFIG_FIRMWARE_INCLUDE_SINGBOX" = "y" ] || [ "$CONFIG_FIRMWARE_INCLUDE_XRAY" = "y" ]; then
 	fw_max_size=$(awk '/"Firmware"/{ getline; getline; gsub(/,$$/,""); print strtonum($2); }' "$partitions_cf" 2>/dev/null)
-	if [ -n "$fw_max_size" ] && [ "$fw_max_size" -lt 30000000 ]; then
-		echo "================================================================================"
-		echo "[ERROR] Target router (${CONFIG_FIRMWARE_PRODUCT_ID}) has 16MB SPI NOR flash (max size: $((fw_max_size / 1024 / 1024))MB)!"
-		echo "Sing-box and Xray-core cannot fit into the 16MB flash image."
-		echo ""
-		echo "HOW TO USE SING-BOX / XRAY ON 16MB SPI ROUTERS:"
-		echo "1. In your .config, keep in-ROM inclusion disabled:"
-		echo "   #CONFIG_FIRMWARE_INCLUDE_SINGBOX=y"
-		echo "   #CONFIG_FIRMWARE_INCLUDE_XRAY=y"
-		echo "2. Re-run ./build_firmware.sh to generate the standard ~8MB firmware image."
-		echo "3. Flash the resulting .trx image to your router."
-		echo "4. Simply copy ready unpacked folder 'images/sing-box' (or 'images/xray') to your USB drive."
-		echo "5. Plug the USB drive into the router. Padavan will automatically detect and start it!"
-		echo "================================================================================"
-		exit 1
-	fi
+	echo "================================================================================"
+	echo "[INFO] Sing-box / Xray-core client enabled in .config."
+	echo "[INFO] Management scripts & Web UI will be embedded in ROM."
+	echo "[INFO] Ready standalone binary packages will be generated in images/ for USB / NAND (/media)."
+	echo "================================================================================"
 fi
 
 rm -rf $ROOTDIR/romfs
@@ -595,20 +584,25 @@ echo --------------------------MAKE-ALL--------------------------------
 make
 
 if [ -d "$ROOTDIR/images" ]; then
-	echo "--------------------------STANDALONE-USB-PACKAGES--------------------------"
-	make -C user/sing-box standalone >/dev/null 2>&1 || true
-	make -C user/xray standalone >/dev/null 2>&1 || true
-	if [ -d "$ROOTDIR/user/sing-box/out/sing-box" ]; then
-		rm -rf "$ROOTDIR/images/sing-box"
-		cp -a "$ROOTDIR/user/sing-box/out/sing-box" "$ROOTDIR/images/"
-		[ -f "$ROOTDIR/user/sing-box/out/sing-box-usb.tar.gz" ] && cp -f "$ROOTDIR/user/sing-box/out/sing-box-usb.tar.gz" "$ROOTDIR/images/" 2>/dev/null || true
-		echo "Ready USB folder: images/sing-box/"
+	if [ "$CONFIG_FIRMWARE_INCLUDE_SINGBOX" = "y" ]; then
+		echo "--------------------------SING-BOX-PACKAGE--------------------------"
+		make -C user/sing-box standalone >/dev/null 2>&1 || true
+		if [ -d "$ROOTDIR/user/sing-box/out/sing-box" ]; then
+			rm -rf "$ROOTDIR/images/sing-box"
+			cp -a "$ROOTDIR/user/sing-box/out/sing-box" "$ROOTDIR/images/"
+			[ -f "$ROOTDIR/user/sing-box/out/sing-box-usb.tar.gz" ] && cp -f "$ROOTDIR/user/sing-box/out/sing-box-usb.tar.gz" "$ROOTDIR/images/" 2>/dev/null || true
+			echo "Generated: images/sing-box/ (ready for USB / NAND storage)"
+		fi
 	fi
-	if [ -d "$ROOTDIR/user/xray/out/xray" ]; then
-		rm -rf "$ROOTDIR/images/xray"
-		cp -a "$ROOTDIR/user/xray/out/xray" "$ROOTDIR/images/"
-		[ -f "$ROOTDIR/user/xray/out/xray-usb.tar.gz" ] && cp -f "$ROOTDIR/user/xray/out/xray-usb.tar.gz" "$ROOTDIR/images/" 2>/dev/null || true
-		echo "Ready USB folder: images/xray/"
+	if [ "$CONFIG_FIRMWARE_INCLUDE_XRAY" = "y" ]; then
+		echo "--------------------------XRAY-PACKAGE--------------------------"
+		make -C user/xray standalone >/dev/null 2>&1 || true
+		if [ -d "$ROOTDIR/user/xray/out/xray" ]; then
+			rm -rf "$ROOTDIR/images/xray"
+			cp -a "$ROOTDIR/user/xray/out/xray" "$ROOTDIR/images/"
+			[ -f "$ROOTDIR/user/xray/out/xray-usb.tar.gz" ] && cp -f "$ROOTDIR/user/xray/out/xray-usb.tar.gz" "$ROOTDIR/images/" 2>/dev/null || true
+			echo "Generated: images/xray/ (ready for USB / NAND storage)"
+		fi
 	fi
 fi
 

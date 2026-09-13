@@ -1880,10 +1880,10 @@ VPNC_Bin_InROM=Встроен в прошивку (/usr/bin)
 VPNC_Bin_OnStorage=Обнаружен на накопителе (/media)
 VPNC_Bin_OnEntware=Обнаружен в Entware (/opt/bin)
 VPNC_Bin_NotFound=Не найден на роутере!
-VPNC_USB_Hint_Title=Как использовать на роутерах с 16 МБ SPI flash:
-VPNC_USB_Hint_Desc1=Бинарник не влезает во flash 16 МБ, поэтому запускается с USB-флешки. Папка с файлами уже готова в каталоге images/:
-VPNC_USB_Hint_Step1=Подключите к роутеру любую USB-флешку (FAT32, ext4 или NTFS).
-VPNC_USB_Hint_Step2=Просто скопируйте готовую папку из каталога images/ прямо в корень флешки:
-VPNC_USB_Hint_Step3=После подключения накопителя обновите эту страницу — роутер сразу обнаружит бинарник.
+VPNC_USB_Hint_Title=Как запустить бинарник на роутере (USB или NAND-память):
+VPNC_USB_Hint_Desc1=Бинарник (80+ МБ) запускается с USB-накопителя или встроенного раздела NAND. Папка уже готова в каталоге images/:
+VPNC_USB_Hint_Step1=Для USB вставьте любую флешку (FAT32/ext4/NTFS). Для NAND-роутеров (RM-AC2100) память доступна в /media/mtd_rwfs.
+VPNC_USB_Hint_Step2=Скопируйте готовую папку из images/ в корень флешки или в /media/mtd_rwfs/:
+VPNC_USB_Hint_Step3=После размещения файлов обновите эту страницу — роутер сразу обнаружит бинарник.
 VPNC_USB_Hint_Console=Либо выполните в консоли роутера (SSH) команду автозагрузки:
 

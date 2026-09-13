@@ -2197,12 +2197,12 @@ ej_firmware_caps_hook(int eid, webs_t wp, int argc, char **argv)
 #else
 	int found_app_awg = 0;
 #endif
-#if defined(APP_SINGBOX) || defined(USE_STORAGE) || defined(USE_NAND_FLASH)
+#if defined(APP_SINGBOX)
 	int found_app_singbox = 1;
 #else
 	int found_app_singbox = (f_exists("/usr/bin/sing-box") || f_exists("/opt/bin/sing-box"));
 #endif
-#if defined(APP_XRAY) || defined(USE_STORAGE) || defined(USE_NAND_FLASH)
+#if defined(APP_XRAY)
 	int found_app_xray = 1;
 #else
 	int found_app_xray = (f_exists("/usr/bin/xray") || f_exists("/opt/bin/xray"));
