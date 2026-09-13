@@ -8,6 +8,7 @@
 #include "socket.h"
 #include "queueing.h"
 #include "messages.h"
+#include "header_protection.h"
 
 #include <linux/ctype.h>
 #include <linux/net.h>
@@ -187,9 +188,11 @@ int wg_socket_send_skb_to_peer(struct wg_peer *peer, struct sk_buff *skb, u8 ds)
 }
 
 int wg_socket_send_buffer_to_peer(struct wg_peer *peer, void *buffer,
-				  size_t len, u8 ds, size_t junk_size)
+				  size_t len, u8 ds, size_t junk_size, bool trailer)
 {
-	void *junk;
+	void *junk = NULL;
+	void *buf_ptr;
+	struct chacha_state state;
 	struct sk_buff *skb = alloc_skb(len + junk_size + SKB_HEADER_LEN, GFP_ATOMIC);
 
 	if (unlikely(!skb))
@@ -203,7 +206,11 @@ int wg_socket_send_buffer_to_peer(struct wg_peer *peer, void *buffer,
 		junk = skb_put(skb, junk_size);
 		get_random_bytes(junk, junk_size);
 	}
-	skb_put_data(skb, buffer, len);
+	buf_ptr = skb_put_data(skb, buffer, len);
+
+	if (junk && awg_header_protection_init(&state, peer->device, junk))
+		chacha20_crypt(&state, buf_ptr, buf_ptr, len);
+
 	return wg_socket_send_skb_to_peer(peer, skb, ds);
 }
 
@@ -214,7 +221,9 @@ int wg_socket_send_buffer_as_reply_to_skb(struct wg_device *wg,
 	int ret = 0;
 	struct sk_buff *skb;
 	struct endpoint endpoint;
-	void *junk;
+	void *junk = NULL;
+	void *buf_ptr;
+	struct chacha_state state;
 
 	if (unlikely(!in_skb))
 		return -EINVAL;
@@ -233,7 +242,10 @@ int wg_socket_send_buffer_as_reply_to_skb(struct wg_device *wg,
 		junk = skb_put(skb, junk_size);
 		get_random_bytes(junk, junk_size);
 	}
-	skb_put_data(skb, buffer, len);
+	buf_ptr = skb_put_data(skb, buffer, len);
+
+	if (junk && awg_header_protection_init(&state, wg, junk))
+		chacha20_crypt(&state, buf_ptr, buf_ptr, len);
 
 	if (endpoint.addr.sa_family == AF_INET)
 		ret = send4(wg, skb, &endpoint, 0, NULL);

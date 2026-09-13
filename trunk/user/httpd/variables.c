@@ -714,6 +714,7 @@
 			{"vpnc_awg_h3", "", NULL, EVM_RESTART_VPNCLI},
 			{"vpnc_awg_h4", "", NULL, EVM_RESTART_VPNCLI},
 			{"vpnc_awg_i1", "", NULL, EVM_RESTART_VPNCLI},
+			{"vpnc_awg_hpk", "", NULL, EVM_RESTART_VPNCLI},
 			{"scripts.vpnc_remote_network.list", "File", NULL, EVM_RESTART_VPNCLI},
 			{"scripts.vpnc_exclude_network.list", "File", NULL, EVM_RESTART_VPNCLI},
 #endif

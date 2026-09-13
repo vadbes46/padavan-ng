@@ -271,6 +271,14 @@ function validForm(){
 				document.form.vpnc_awg_i1.select();
 				return false;
 			}
+
+			var hpk_val = document.form.vpnc_awg_hpk.value.trim();
+			if (hpk_val.length > 0 && !/^[A-Za-z0-9+/]{42,43}={0,2}$/.test(hpk_val)) {
+				alert("Invalid HeaderProtectionKey (must be 32 bytes Base64)");
+				document.form.vpnc_awg_hpk.focus();
+				document.form.vpnc_awg_hpk.select();
+				return false;
+			}
 		}
 	}
 	else if (mode == "2") {
@@ -901,6 +909,7 @@ function extract_awg_config_from_json(json) {
 		if (awg.H3) lines.push("H3 = " + awg.H3);
 		if (awg.H4) lines.push("H4 = " + awg.H4);
 		if (awg.I1) lines.push("I1 = " + awg.I1);
+		if (awg.header_protection_key || awg.HeaderProtectionKey) lines.push("HeaderProtectionKey = " + (awg.header_protection_key || awg.HeaderProtectionKey));
 		lines.push("");
 		lines.push("[Peer]");
 		if (awg.server_pub_key) lines.push("PublicKey = " + awg.server_pub_key);
@@ -1054,6 +1063,7 @@ function wg_conf_import() {
 		document.form.vpnc_awg_h3.value = "";
 		document.form.vpnc_awg_h4.value = "";
 		document.form.vpnc_awg_i1.value = "";
+		document.form.vpnc_awg_hpk.value = "";
 
 		if (iface.address) document.form.vpnc_wg_if_addr.value = iface.address;
 		if (iface.privatekey) document.form.vpnc_wg_if_private.value = iface.privatekey;
@@ -1094,8 +1104,9 @@ function wg_conf_import() {
 		if (iface.h3) document.form.vpnc_awg_h3.value = iface.h3;
 		if (iface.h4) document.form.vpnc_awg_h4.value = iface.h4;
 		if (iface.i1) document.form.vpnc_awg_i1.value = iface.i1;
+		if (iface.headerprotectionkey) document.form.vpnc_awg_hpk.value = iface.headerprotectionkey;
 
-		var has_awg = iface.jc || iface.jmin || iface.jmax || iface.s1 || iface.s2 || iface.s3 || iface.s4 || iface.h1 || iface.h2 || iface.h3 || iface.h4 || iface.i1;
+		var has_awg = iface.jc || iface.jmin || iface.jmax || iface.s1 || iface.s2 || iface.s3 || iface.s4 || iface.h1 || iface.h2 || iface.h3 || iface.h4 || iface.i1 || iface.headerprotectionkey;
 		if (has_awg && document.form.vpnc_type.value != "4") {
 			document.form.vpnc_type.value = "4";
 			change_vpnc_type();
@@ -1425,6 +1436,13 @@ function wg_conf_import() {
                                                 <td>
                                                     <input type="text" name="vpnc_awg_i1" class="input" maxlength="4096" size="32" value="<% nvram_get_x("", "vpnc_awg_i1"); %>"/>
                                                     &nbsp;<span class="hint-nowrap">[ &lt;tags&gt; ]</span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th>HeaderProtectionKey:</th>
+                                                <td>
+                                                    <input type="text" name="vpnc_awg_hpk" class="input" maxlength="64" size="32" value="<% nvram_get_x("", "vpnc_awg_hpk"); %>"/>
+                                                    &nbsp;<span class="hint-nowrap">[ Base64 (32 bytes) ]</span>
                                                 </td>
                                             </tr>
                                         </table>

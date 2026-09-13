@@ -13,6 +13,7 @@
 #include "cookie.h"
 #include "magic_header.h"
 #include "junk.h"
+#include "header_protection.h"
 
 #include <linux/simd.h>
 #include <linux/uio.h>
@@ -58,7 +59,7 @@ static void wg_packet_send_handshake_initiation(struct wg_peer *peer)
 		if (spec->pkt_size > 0) {
 			mutex_lock(&spec->lock);
 			jp_spec_applymods(spec, peer);
-			wg_socket_send_buffer_to_peer(peer, spec->pkt, spec->pkt_size, 0, 0);
+			wg_socket_send_buffer_to_peer(peer, spec->pkt, spec->pkt_size, 0, 0, false);
 			atomic_inc(&peer->jp_packet_counter);
 			mutex_unlock(&spec->lock);
 		}
@@ -77,7 +78,7 @@ static void wg_packet_send_handshake_initiation(struct wg_peer *peer)
 
 			get_random_bytes(buffer, junk_packet_size);
 			get_random_bytes(&ds, 1);
-			wg_socket_send_buffer_to_peer(peer, buffer, junk_packet_size, ds, 0);
+			wg_socket_send_buffer_to_peer(peer, buffer, junk_packet_size, ds, 0, false);
 		}
 
 		kfree(buffer);
@@ -92,7 +93,8 @@ static void wg_packet_send_handshake_initiation(struct wg_peer *peer)
 			     ktime_get_coarse_boottime_ns());
 		wg_socket_send_buffer_to_peer(peer, &packet, sizeof(packet),
 					      HANDSHAKE_DSCP,
-					      wg->junk_size[MSGIDX_HANDSHAKE_INIT]);
+					      wg->junk_size[MSGIDX_HANDSHAKE_INIT],
+					      true);
 		wg_timers_handshake_initiated(peer);
 	}
 }
@@ -159,7 +161,8 @@ void wg_packet_send_handshake_response(struct wg_peer *peer)
 			wg_socket_send_buffer_to_peer(peer, &packet,
 						      sizeof(packet),
 						      HANDSHAKE_DSCP,
-						      wg->junk_size[MSGIDX_HANDSHAKE_RESPONSE]);
+						      wg->junk_size[MSGIDX_HANDSHAKE_RESPONSE],
+						      true);
 		}
 	}
 }
@@ -270,8 +273,13 @@ static bool encrypt_packet(u32 message_type, size_t junk_size, struct sk_buff *s
 	header->counter = cpu_to_le64(PACKET_CB(skb)->nonce);
 	pskb_put(skb, trailer, trailer_len);
 
-	if (junk_size)
-		get_random_bytes(skb_push(skb, junk_size), junk_size);
+	if (junk_size) {
+		void *crypto = skb_push(skb, junk_size);
+		struct chacha_state state;
+		get_random_bytes(crypto, junk_size);
+		if (awg_header_protection_init(&state, peer->device, crypto))
+			chacha20_crypt(&state, (u8 *)header, (u8 *)header, sizeof(*header));
+	}
 
 	/* Now we can encrypt the scattergather segments */
 	sg_init_table(sg, num_frags);

@@ -42,7 +42,16 @@ static const struct nla_policy device_policy[WGDEVICE_A_MAX + 1] = {
 	[WGDEVICE_A_I2] 		= { .type = NLA_NUL_STRING },
 	[WGDEVICE_A_I3] 		= { .type = NLA_NUL_STRING },
 	[WGDEVICE_A_I4] 		= { .type = NLA_NUL_STRING },
-	[WGDEVICE_A_I5] 		= { .type = NLA_NUL_STRING }
+	[WGDEVICE_A_I5] 		= { .type = NLA_NUL_STRING },
+	[WGDEVICE_A_HEADER_PROTECTION_KEY] = NLA_POLICY_EXACT_LEN(HEADER_PROTECTION_KEY_SIZE),
+	[WGDEVICE_A_CONTENT_PADDING_ADDITION] = { .type = NLA_U32 },
+	[WGDEVICE_A_REKEY_AFTER_TIME] = { .type = NLA_U32 },
+	[WGDEVICE_A_REKEY_TIMEOUT] = { .type = NLA_U32 },
+	[WGDEVICE_A_REJECT_AFTER_TIME] = { .type = NLA_U32 },
+	[WGDEVICE_A_KEEPALIVE_TIMEOUT] = { .type = NLA_U32 },
+	[WGDEVICE_A_MAX_HANDSHAKE_ATTEMPTS] = { .type = NLA_U32 },
+	[WGDEVICE_A_RANDOM_TRAILERS] = { .type = NLA_U8 },
+	[WGDEVICE_A_DISABLE_COOKIES] = { .type = NLA_U8 }
 };
 
 static int parse_header_attr(struct magic_header *mh, struct nlattr *attr)
@@ -52,6 +61,11 @@ static int parse_header_attr(struct magic_header *mh, struct nlattr *attr)
 		u32 val = nla_get_u32(attr);
 		mh->start = val;
 		mh->end = val;
+		return 0;
+	} else if (nla_len(attr) == sizeof(u64)) {
+		u64 val = nla_get_u64(attr);
+		mh->start = (u32)val;
+		mh->end = (u32)(val >> 32);
 		return 0;
 	} else {
 		char *str = kmalloc(nla_len(attr) + 1, GFP_KERNEL);
@@ -307,6 +321,27 @@ static int wg_get_device_dump(struct sk_buff *skb, struct netlink_callback *cb)
 		if (wg->ispecs[3].desc && nla_put_string(skb, WGDEVICE_A_I4, wg->ispecs[3].desc))
 			goto out;
 		if (wg->ispecs[4].desc && nla_put_string(skb, WGDEVICE_A_I5, wg->ispecs[4].desc))
+			goto out;
+
+		down_read(&wg->header_protection.lock);
+		if (wg->header_protection.has_protection) {
+			u8 hpk_buf[HEADER_PROTECTION_KEY_SIZE];
+			awg_header_protection_get_key(&wg->header_protection, hpk_buf);
+			if (nla_put(skb, WGDEVICE_A_HEADER_PROTECTION_KEY, sizeof(hpk_buf), hpk_buf)) {
+				up_read(&wg->header_protection.lock);
+				goto out;
+			}
+		}
+		up_read(&wg->header_protection.lock);
+
+		if (wg->content_padding_addition &&
+		    nla_put_u32(skb, WGDEVICE_A_CONTENT_PADDING_ADDITION, wg->content_padding_addition))
+			goto out;
+		if (wg->random_trailers &&
+		    nla_put_u8(skb, WGDEVICE_A_RANDOM_TRAILERS, wg->random_trailers))
+			goto out;
+		if (wg->disable_cookies &&
+		    nla_put_u8(skb, WGDEVICE_A_DISABLE_COOKIES, wg->disable_cookies))
 			goto out;
 
 		down_read(&wg->static_identity.lock);
@@ -721,6 +756,27 @@ static int wg_set_device(struct sk_buff *skb, struct genl_info *info)
 			net_dbg_ratelimited("%s: I5-packet invalid format\n", wg->dev->name);
 			goto out;
 		}
+	}
+
+	if (info->attrs[WGDEVICE_A_HEADER_PROTECTION_KEY]) {
+		wg->advanced_security = true;
+		awg_header_protection_set_key(&wg->header_protection,
+					      nla_data(info->attrs[WGDEVICE_A_HEADER_PROTECTION_KEY]));
+	}
+
+	if (info->attrs[WGDEVICE_A_CONTENT_PADDING_ADDITION]) {
+		wg->advanced_security = true;
+		wg->content_padding_addition = nla_get_u32(info->attrs[WGDEVICE_A_CONTENT_PADDING_ADDITION]);
+	}
+
+	if (info->attrs[WGDEVICE_A_RANDOM_TRAILERS]) {
+		wg->advanced_security = true;
+		wg->random_trailers = nla_get_u8(info->attrs[WGDEVICE_A_RANDOM_TRAILERS]);
+	}
+
+	if (info->attrs[WGDEVICE_A_DISABLE_COOKIES]) {
+		wg->advanced_security = true;
+		wg->disable_cookies = nla_get_u8(info->attrs[WGDEVICE_A_DISABLE_COOKIES]);
 	}
 
 	if (flags & WGDEVICE_F_REPLACE_PEERS)

@@ -340,6 +340,7 @@ static int wg_newlink(struct net *src_net, struct net_device *dev,
 
 	rcu_assign_pointer(wg->creating_net, src_net);
 	init_rwsem(&wg->static_identity.lock);
+	init_rwsem(&wg->header_protection.lock);
 	mutex_init(&wg->socket_update_lock);
 	mutex_init(&wg->device_update_lock);
 	for (i = 0; i < ARRAY_SIZE(wg->ispecs); ++i)
@@ -560,6 +561,27 @@ int wg_device_handle_post_config(struct wg_device *wg)
 			}
 		}
 	}
+
+	if (wg->header_protection.has_protection) {
+		if (wg->junk_size[MSGIDX_HANDSHAKE_INIT] < HEADER_PROTECTION_NONCE_SIZE ||
+		    wg->junk_size[MSGIDX_HANDSHAKE_RESPONSE] < HEADER_PROTECTION_NONCE_SIZE ||
+		    wg->junk_size[MSGIDX_HANDSHAKE_COOKIE] < HEADER_PROTECTION_NONCE_SIZE ||
+		    wg->junk_size[MSGIDX_TRANSPORT] < HEADER_PROTECTION_NONCE_SIZE) {
+			net_dbg_ratelimited("%s: S1-S4 must be at least %d when HeaderProtectionKey is set\n",
+					    wg->dev->name, HEADER_PROTECTION_NONCE_SIZE);
+			return -EINVAL;
+		}
+	}
+
+	wg->init_padding = wg->junk_size[MSGIDX_HANDSHAKE_INIT];
+	wg->resp_padding = wg->junk_size[MSGIDX_HANDSHAKE_RESPONSE];
+	wg->cookie_padding = wg->junk_size[MSGIDX_HANDSHAKE_COOKIE];
+	wg->transport_padding = wg->junk_size[MSGIDX_TRANSPORT];
+
+	u32_range_init(&wg->init_header, wg->headers[MSGIDX_HANDSHAKE_INIT].start, wg->headers[MSGIDX_HANDSHAKE_INIT].end);
+	u32_range_init(&wg->resp_header, wg->headers[MSGIDX_HANDSHAKE_RESPONSE].start, wg->headers[MSGIDX_HANDSHAKE_RESPONSE].end);
+	u32_range_init(&wg->cookie_header, wg->headers[MSGIDX_HANDSHAKE_COOKIE].start, wg->headers[MSGIDX_HANDSHAKE_COOKIE].end);
+	u32_range_init(&wg->transport_header, wg->headers[MSGIDX_TRANSPORT].start, wg->headers[MSGIDX_TRANSPORT].end);
 
 	return 0;
 }

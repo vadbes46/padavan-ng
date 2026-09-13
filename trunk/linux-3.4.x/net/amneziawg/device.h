@@ -12,6 +12,8 @@
 #include "cookie.h"
 #include "magic_header.h"
 #include "junk.h"
+#include "header_protection.h"
+#include "type.h"
 
 #include <linux/types.h>
 #include <linux/netdevice.h>
@@ -57,12 +59,17 @@ struct wg_device {
 	u32 fwmark;
 	u16 incoming_port;
 
+	struct header_protection header_protection;
 	struct jp_spec ispecs[5];
 	struct magic_header headers[4];
+	u32_range_t init_header, resp_header, cookie_header, transport_header;
+	u16_range_t content_padding_addition;
 	u16 junk_size[4];
+	u16 init_padding, resp_padding, cookie_padding, transport_padding;
 	u16 jc;
 	u16 jmin;
 	u16 jmax;
+	bool random_trailers, disable_cookies;
 	bool advanced_security;
 };
 

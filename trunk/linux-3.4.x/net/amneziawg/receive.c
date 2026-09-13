@@ -11,6 +11,8 @@
 #include "cookie.h"
 #include "socket.h"
 #include "magic_header.h"
+#include "header_protection.h"
+#include "type.h"
 
 #include <linux/simd.h>
 #include <linux/ip.h>
@@ -32,50 +34,94 @@ static void update_rx_stats(struct wg_peer *peer, size_t len)
 	put_cpu_ptr(tstats);
 }
 
+static inline __le32 awg_decoded_type(u8 data[4], u8 hash[4])
+{
+	u8 buf[4];
+	buf[0] = data[0] ^ hash[0];
+	buf[1] = data[1] ^ hash[1];
+	buf[2] = data[2] ^ hash[2];
+	buf[3] = data[3] ^ hash[3];
+	return ((struct message_header *)buf)->type;
+}
+
 static size_t prepare_awg_message(struct sk_buff *skb, struct wg_device *wg)
 {
+	struct chacha_state state;
+	bool protected = false;
+	u8 buf[HEADER_PROTECTION_NONCE_SIZE], *ptr, hash[4] = {0};
+	u16 padding = 0;
+	size_t header_len = 0;
+	void *hptr;
+	u8 tbuf[4];
+
 	if (skb_is_nonlinear(skb) && unlikely(skb_linearize(skb))) {
 		net_dbg_skb_ratelimited("%s: non-linear sk_buff from %pISpfsc could not be linearized, dropping packet\n",
 					wg->dev->name, skb);
 		return 0;
 	}
 
-	if (skb->len == wg->junk_size[MSGIDX_HANDSHAKE_INIT] + MESSAGE_INITIATION_SIZE) {
-		skb_pull(skb, wg->junk_size[MSGIDX_HANDSHAKE_INIT]);
-		if (mh_validate(SKB_TYPE_LE32(skb), &wg->headers[MSGIDX_HANDSHAKE_INIT]))
-			return MESSAGE_INITIATION_SIZE;
-		else
-			skb_push(skb, wg->junk_size[MSGIDX_HANDSHAKE_INIT]);
+	if (wg->header_protection.has_protection) {
+		ptr = skb_header_pointer(skb, 0, sizeof(buf), buf);
+		if (!ptr)
+			return 0;
+
+		protected = awg_header_protection_init(&state, wg, ptr);
+		if (protected) {
+			chacha20_crypt(&state, hash, hash, sizeof(hash));
+			state.x[12] = 0; /* rewind counter to 0 */
+		}
 	}
 
-	if (skb->len == wg->junk_size[MSGIDX_HANDSHAKE_RESPONSE] + MESSAGE_RESPONSE_SIZE) {
-		skb_pull(skb, wg->junk_size[MSGIDX_HANDSHAKE_RESPONSE]);
-		if (mh_validate(SKB_TYPE_LE32(skb), &wg->headers[MSGIDX_HANDSHAKE_RESPONSE]))
-			return MESSAGE_RESPONSE_SIZE;
-		else
-			skb_push(skb, wg->junk_size[MSGIDX_HANDSHAKE_RESPONSE]);
+	/* Check Handshake Initiation */
+	padding = wg->junk_size[MSGIDX_HANDSHAKE_INIT];
+	if (skb->len == padding + MESSAGE_INITIATION_SIZE) {
+		hptr = skb_header_pointer(skb, padding, sizeof(tbuf), tbuf);
+		if (hptr && u32_range_contains(wg->init_header, le32_to_cpu(awg_decoded_type(hptr, hash)))) {
+			header_len = MESSAGE_INITIATION_SIZE;
+			goto matched;
+		}
 	}
 
-	if (skb->len == wg->junk_size[MSGIDX_HANDSHAKE_COOKIE] + MESSAGE_COOKIE_REPLY_SIZE) {
-		skb_pull(skb, wg->junk_size[MSGIDX_HANDSHAKE_COOKIE]);
-		if (mh_validate(SKB_TYPE_LE32(skb), &wg->headers[MSGIDX_HANDSHAKE_COOKIE]))
-			return MESSAGE_COOKIE_REPLY_SIZE;
-		else
-			skb_push(skb, wg->junk_size[MSGIDX_HANDSHAKE_COOKIE]);
+	/* Check Handshake Response */
+	padding = wg->junk_size[MSGIDX_HANDSHAKE_RESPONSE];
+	if (skb->len == padding + MESSAGE_RESPONSE_SIZE) {
+		hptr = skb_header_pointer(skb, padding, sizeof(tbuf), tbuf);
+		if (hptr && u32_range_contains(wg->resp_header, le32_to_cpu(awg_decoded_type(hptr, hash)))) {
+			header_len = MESSAGE_RESPONSE_SIZE;
+			goto matched;
+		}
 	}
 
-	if (skb->len >= wg->junk_size[MSGIDX_TRANSPORT] + MESSAGE_TRANSPORT_SIZE) {
-		skb_pull(skb, wg->junk_size[MSGIDX_TRANSPORT]);
-		if (mh_validate(SKB_TYPE_LE32(skb), &wg->headers[MSGIDX_TRANSPORT]))
-			return MESSAGE_TRANSPORT_SIZE;
-		else
-			skb_push(skb, wg->junk_size[MSGIDX_TRANSPORT]);
+	/* Check Handshake Cookie */
+	padding = wg->junk_size[MSGIDX_HANDSHAKE_COOKIE];
+	if (skb->len == padding + MESSAGE_COOKIE_REPLY_SIZE) {
+		hptr = skb_header_pointer(skb, padding, sizeof(tbuf), tbuf);
+		if (hptr && u32_range_contains(wg->cookie_header, le32_to_cpu(awg_decoded_type(hptr, hash)))) {
+			header_len = MESSAGE_COOKIE_REPLY_SIZE;
+			goto matched;
+		}
+	}
+
+	/* Check Transport Data */
+	padding = wg->junk_size[MSGIDX_TRANSPORT];
+	if (skb->len >= padding + MESSAGE_TRANSPORT_SIZE) {
+		hptr = skb_header_pointer(skb, padding, sizeof(tbuf), tbuf);
+		if (hptr && u32_range_contains(wg->transport_header, le32_to_cpu(awg_decoded_type(hptr, hash)))) {
+			header_len = MESSAGE_TRANSPORT_SIZE;
+			goto matched;
+		}
 	}
 
 	net_dbg_skb_ratelimited("%s: Unknown message from %pISpfsc encountered, packet dropped\n",
 				wg->dev->name, skb);
-
 	return 0;
+
+matched:
+	skb_pull(skb, padding);
+	if (protected)
+		chacha20_crypt(&state, skb->data, skb->data, header_len);
+
+	return header_len;
 }
 
 static int prepare_skb_header(struct sk_buff *skb, struct wg_device *wg)
@@ -143,7 +189,7 @@ static void wg_receive_handshake_packet(struct wg_device *wg,
 		return;
 	}
 
-	under_load = atomic_read(&wg->handshake_queue_len) >=
+	under_load = !wg->disable_cookies && atomic_read(&wg->handshake_queue_len) >=
 			MAX_QUEUED_INCOMING_HANDSHAKES / 8;
 	if (under_load) {
 		last_under_load = ktime_get_coarse_boottime_ns();
