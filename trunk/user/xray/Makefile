@@ -6,17 +6,22 @@ all: build_or_fetch
 build_or_fetch:
 	@if [ ! -f $(XRAY_BIN) ]; then \
 		if command -v go >/dev/null 2>&1; then \
-			echo "Compiling Xray-core with host Go compiler for mipsle softfloat..."; \
+			echo "Compiling Xray-core from source with host Go compiler for mipsle softfloat..."; \
 			mkdir -p $(THISDIR)/src && \
 			git clone --depth 1 https://github.com/XTLS/Xray-core.git $(THISDIR)/src && \
 			cd $(THISDIR)/src && \
 			GOOS=linux GOARCH=mipsle GOMIPS=softfloat CGO_ENABLED=0 go build -v -ldflags "-s -w -buildid=" -trimpath -o $(XRAY_BIN) ./main && \
 			rm -rf $(THISDIR)/src && \
 			echo "Xray-core successfully compiled: $(XRAY_BIN)"; \
+		elif command -v wget >/dev/null 2>&1 || command -v curl >/dev/null 2>&1; then \
+			echo "Host Go compiler not found. Downloading pre-compiled mipsle softfloat Xray-core..."; \
+			( wget -t3 --timeout=30 --no-check-certificate -O $(XRAY_BIN) https://raw.githubusercontent.com/adminpomme/xray-padavan/master/xray || \
+			  curl -sL --connect-timeout 30 -o $(XRAY_BIN) https://raw.githubusercontent.com/adminpomme/xray-padavan/master/xray ) && \
+			chmod +x $(XRAY_BIN) && \
+			echo "Xray-core pre-compiled binary downloaded: $(XRAY_BIN)"; \
 		else \
-			echo "ERROR: 'go' not found in PATH! Please install Go 1.27+ to compile Xray-core for MIPS32 softfloat, or place pre-built 'xray' binary into $(THISDIR)/xray"; \
-			exit 1; \
-		fi \
+			echo "[WARNING] Neither Go nor wget/curl is available to obtain Xray binary. Skipping Xray binary."; \
+		fi; \
 	fi
 
 clean:
@@ -32,15 +37,19 @@ romfs:
 	$(ROMFSINST) -d README.txt /etc_ro/xray/README.txt
 
 standalone: all
-	rm -rf $(THISDIR)/out
-	mkdir -p $(THISDIR)/out/xray
-	cp -f $(XRAY_BIN) $(THISDIR)/out/xray/xray
-	chmod +x $(THISDIR)/out/xray/xray
-	cp -f xray.sh $(THISDIR)/out/xray/xray.sh
-	chmod +x $(THISDIR)/out/xray/xray.sh
-	cp -f config.json.vless $(THISDIR)/out/xray/config.json
-	[ -f $(THISDIR)/geoip.dat ] && cp -f $(THISDIR)/geoip.dat $(THISDIR)/out/xray/ || true
-	[ -f $(THISDIR)/geosite.dat ] && cp -f $(THISDIR)/geosite.dat $(THISDIR)/out/xray/ || true
-	cp -f README.txt $(THISDIR)/out/xray/README.txt
-	tar -czf $(THISDIR)/out/xray-usb.tar.gz -C $(THISDIR)/out xray
-	@echo "Standalone Xray package ready in $(THISDIR)/out/xray-usb.tar.gz"
+	@if [ -f $(XRAY_BIN) ]; then \
+		rm -rf $(THISDIR)/out && \
+		mkdir -p $(THISDIR)/out/xray && \
+		cp -f $(XRAY_BIN) $(THISDIR)/out/xray/xray && \
+		chmod +x $(THISDIR)/out/xray/xray && \
+		cp -f xray.sh $(THISDIR)/out/xray/xray.sh && \
+		chmod +x $(THISDIR)/out/xray/xray.sh && \
+		cp -f config.json.vless $(THISDIR)/out/xray/config.json && \
+		[ -f $(THISDIR)/geoip.dat ] && cp -f $(THISDIR)/geoip.dat $(THISDIR)/out/xray/ || true && \
+		[ -f $(THISDIR)/geosite.dat ] && cp -f $(THISDIR)/geosite.dat $(THISDIR)/out/xray/ || true && \
+		cp -f README.txt $(THISDIR)/out/xray/README.txt && \
+		tar -czf $(THISDIR)/out/xray-usb.tar.gz -C $(THISDIR)/out xray && \
+		echo "Standalone Xray package ready in $(THISDIR)/out/xray-usb.tar.gz" ; \
+	else \
+		echo "[NOTICE] Xray binary not available. Standalone package skipped." ; \
+	fi

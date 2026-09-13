@@ -9,7 +9,8 @@ all: download_test extract_test
 
 download_test:
 	( if [ ! -f $(SRC_ARCHIVE) ]; then \
-		wget -t5 --timeout=30 --no-check-certificate -O $(SRC_ARCHIVE) $(SRC_URL) || rm -f $(SRC_ARCHIVE); \
+		wget -t5 --timeout=30 --no-check-certificate -O $(SRC_ARCHIVE) $(SRC_URL) || \
+		curl -sL --connect-timeout 30 -o $(SRC_ARCHIVE) $(SRC_URL) || rm -f $(SRC_ARCHIVE); \
 	fi )
 
 extract_test:

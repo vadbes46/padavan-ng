@@ -604,5 +604,31 @@ if [ -d "$ROOTDIR/images" ]; then
 			echo "Generated: images/xray/ (ready for USB / NAND storage)"
 		fi
 	fi
+
+	if [ "$CONFIG_FIRMWARE_INCLUDE_SINGBOX" = "y" ] || [ "$CONFIG_FIRMWARE_INCLUDE_XRAY" = "y" ]; then
+		echo "================================================================================"
+		echo "                     VPN CLIENT DEPLOYMENT GUIDE                                "
+		echo "================================================================================"
+		echo "Firmware image was built into: images/ (*.trx)"
+		echo ""
+		echo "To use Sing-box / Xray on your router:"
+		echo "1. Flash the router with the generated *.trx image."
+		echo ""
+		echo "2. Copy the ready folder to the router:"
+		echo "   * FOR ROUTERS WITH USB (SmartBox SPI, etc.):"
+		echo "     Copy folder(s) to the root of a USB flash drive (FAT32, ext4, NTFS):"
+		[ "$CONFIG_FIRMWARE_INCLUDE_SINGBOX" = "y" ] && echo "       cp -r images/sing-box /media/<YOUR_USB_DRIVE>/"
+		[ "$CONFIG_FIRMWARE_INCLUDE_XRAY" = "y" ]    && echo "       cp -r images/xray     /media/<YOUR_USB_DRIVE>/"
+		echo "     Insert the USB drive into the router. It will be detected automatically!"
+		echo ""
+		echo "   * FOR ROUTERS WITH NAND (Xiaomi RM-AC2100, SmartBox NAND):"
+		echo "     Copy directly to the router's permanent UBIFS storage via SCP/SSH:"
+		[ "$CONFIG_FIRMWARE_INCLUDE_SINGBOX" = "y" ] && echo "       scp -r images/sing-box admin@192.168.1.1:/media/mtd_rwfs/"
+		[ "$CONFIG_FIRMWARE_INCLUDE_XRAY" = "y" ]    && echo "       scp -r images/xray     admin@192.168.1.1:/media/mtd_rwfs/"
+		echo ""
+		echo "3. Open Web UI -> VPN Client -> Sing-box or Xray-core tab."
+		echo "   Status will turn green: 'Detected on storage (/media)'."
+		echo "================================================================================"
+	fi
 fi
 
