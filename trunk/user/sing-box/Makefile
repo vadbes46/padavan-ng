@@ -26,6 +26,7 @@ romfs:
 	mkdir -p $(ROMFSDIR)/etc_ro/sing-box
 	$(ROMFSINST) -d config.json.vless /etc_ro/sing-box/config.json.vless
 	$(ROMFSINST) -d config.json.hysteria2 /etc_ro/sing-box/config.json.hysteria2
+	$(ROMFSINST) -d README.txt /etc_ro/sing-box/README.txt
 
 standalone: all
 	mkdir -p $(THISDIR)/out
@@ -33,4 +34,5 @@ standalone: all
 	cp -f sing-box.sh $(THISDIR)/out/sing-box.sh
 	cp -f config.json.vless $(THISDIR)/out/config_vless.json
 	cp -f config.json.hysteria2 $(THISDIR)/out/config_hy2.json
+	cp -f README.txt $(THISDIR)/out/README.txt
 	@echo "Standalone sing-box package ready in $(THISDIR)/out"
