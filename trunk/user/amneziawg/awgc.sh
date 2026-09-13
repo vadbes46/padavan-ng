@@ -23,6 +23,7 @@ IF_H3=$(nvram get vpnc_awg_h3)
 IF_H4=$(nvram get vpnc_awg_h4)
 IF_I1=$(nvram get vpnc_awg_i1)
 IF_HPK=$(nvram get vpnc_awg_hpk)
+IF_CPA=$(nvram get vpnc_awg_cpa)
 
 PEER_PUBLIC=$(nvram get vpnc_wg_peer_public)
 PEER_PORT=$(nvram get vpnc_wg_peer_port)
@@ -137,6 +138,7 @@ EOF
 	append_if_set "H4" "$IF_H4"
 	append_if_set "I1" "$IF_I1"
 	append_if_set "HeaderProtectionKey" "$IF_HPK"
+	append_if_set "ContentPaddingAddition" "$IF_CPA"
 
 	cat >> "/tmp/${IF_NAME}.conf.$$" <<EOF
 

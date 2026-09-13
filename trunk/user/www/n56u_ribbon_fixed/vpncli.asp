@@ -175,10 +175,24 @@ function validForm(){
 			try { JSON.parse(xr_el.value); } catch(e) { alert("Invalid JSON syntax in Xray config: " + e.message); return false; }
 		}
 	}
-
 	if (mode == "3" || mode == "4") {
-		if(!validate_range(document.form.vpnc_wg_peer_keepalive, 0, 65535))
-		return false;
+		var pka = document.form.vpnc_wg_peer_keepalive.value.trim();
+		if (pka.length > 0) {
+			if (mode == "4" && pka.indexOf('-') !== -1) {
+				var pka_parts = pka.split('-');
+				var pk1 = Number(pka_parts[0]);
+				var pk2 = Number(pka_parts[1]);
+				if (pka_parts.length !== 2 || pka_parts[0] === "" || pka_parts[1] === "" || isNaN(pk1) || isNaN(pk2) || pk1 < 0 || pk1 > 65535 || pk2 < 0 || pk2 > 65535 || pk1 > pk2) {
+					alert("Invalid range for PersistentKeepalive. Expected min-max in [0..65535]");
+					document.form.vpnc_wg_peer_keepalive.focus();
+					document.form.vpnc_wg_peer_keepalive.select();
+					return false;
+				}
+			} else {
+				if(!validate_range(document.form.vpnc_wg_peer_keepalive, 0, 65535))
+					return false;
+			}
+		}
 
 		if (document.form.vpnc_wg_if_addr.value==""){
 			alert("<#JS_fieldblank#>");
@@ -278,6 +292,24 @@ function validForm(){
 				document.form.vpnc_awg_hpk.focus();
 				document.form.vpnc_awg_hpk.select();
 				return false;
+			}
+
+			var cpa_val = document.form.vpnc_awg_cpa.value.trim();
+			if (cpa_val.length > 0) {
+				if (cpa_val.indexOf('-') !== -1) {
+					var cp_parts = cpa_val.split('-');
+					var cp1 = Number(cp_parts[0]);
+					var cp2 = Number(cp_parts[1]);
+					if (cp_parts.length !== 2 || cp_parts[0] === "" || cp_parts[1] === "" || isNaN(cp1) || isNaN(cp2) || cp1 < 0 || cp1 > 65535 || cp2 < 0 || cp2 > 65535 || cp1 > cp2) {
+						alert("Invalid range for ContentPaddingAddition. Expected min-max in [0..65535]");
+						document.form.vpnc_awg_cpa.focus();
+						document.form.vpnc_awg_cpa.select();
+						return false;
+					}
+				} else {
+					if (!validate_range(document.form.vpnc_awg_cpa, 0, 65535))
+						return false;
+				}
 			}
 		}
 	}
@@ -910,6 +942,7 @@ function extract_awg_config_from_json(json) {
 		if (awg.H4) lines.push("H4 = " + awg.H4);
 		if (awg.I1) lines.push("I1 = " + awg.I1);
 		if (awg.header_protection_key || awg.HeaderProtectionKey) lines.push("HeaderProtectionKey = " + (awg.header_protection_key || awg.HeaderProtectionKey));
+		if (awg.content_padding_addition || awg.ContentPaddingAddition) lines.push("ContentPaddingAddition = " + (awg.content_padding_addition || awg.ContentPaddingAddition));
 		lines.push("");
 		lines.push("[Peer]");
 		if (awg.server_pub_key) lines.push("PublicKey = " + awg.server_pub_key);
@@ -1064,6 +1097,7 @@ function wg_conf_import() {
 		document.form.vpnc_awg_h4.value = "";
 		document.form.vpnc_awg_i1.value = "";
 		document.form.vpnc_awg_hpk.value = "";
+		document.form.vpnc_awg_cpa.value = "";
 
 		if (iface.address) document.form.vpnc_wg_if_addr.value = iface.address;
 		if (iface.privatekey) document.form.vpnc_wg_if_private.value = iface.privatekey;
@@ -1105,8 +1139,9 @@ function wg_conf_import() {
 		if (iface.h4) document.form.vpnc_awg_h4.value = iface.h4;
 		if (iface.i1) document.form.vpnc_awg_i1.value = iface.i1;
 		if (iface.headerprotectionkey) document.form.vpnc_awg_hpk.value = iface.headerprotectionkey;
+		if (iface.contentpaddingaddition) document.form.vpnc_awg_cpa.value = iface.contentpaddingaddition;
 
-		var has_awg = iface.jc || iface.jmin || iface.jmax || iface.s1 || iface.s2 || iface.s3 || iface.s4 || iface.h1 || iface.h2 || iface.h3 || iface.h4 || iface.i1 || iface.headerprotectionkey;
+		var has_awg = iface.jc || iface.jmin || iface.jmax || iface.s1 || iface.s2 || iface.s3 || iface.s4 || iface.h1 || iface.h2 || iface.h3 || iface.h4 || iface.i1 || iface.headerprotectionkey || iface.contentpaddingaddition;
 		if (has_awg && document.form.vpnc_type.value != "4") {
 			document.form.vpnc_type.value = "4";
 			change_vpnc_type();
@@ -1293,8 +1328,8 @@ function wg_conf_import() {
                                             <tr>
                                                 <th><#VPNC_WG_KeepAlive#>:</th>
                                                 <td>
-                                                    <input type="text" name="vpnc_wg_peer_keepalive" class="input" maxlength="5" size="32" value="<% nvram_get_x("", "vpnc_wg_peer_keepalive"); %>" onKeyPress="return is_number(this,event);"/>
-                                                    &nbsp;<span class="hint-nowrap">[ 0..65535 ]</span>
+                                                    <input type="text" name="vpnc_wg_peer_keepalive" class="input" maxlength="11" size="32" value="<% nvram_get_x("", "vpnc_wg_peer_keepalive"); %>" onKeyPress="return is_range(this,event);"/>
+                                                    &nbsp;<span class="hint-nowrap">[ 0..65535 or min-max ]</span>
                                                 </td>
                                             </tr>
                                             <tr>
@@ -1443,6 +1478,13 @@ function wg_conf_import() {
                                                 <td>
                                                     <input type="text" name="vpnc_awg_hpk" class="input" maxlength="64" size="32" value="<% nvram_get_x("", "vpnc_awg_hpk"); %>"/>
                                                     &nbsp;<span class="hint-nowrap">[ Base64 (32 bytes) ]</span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th>ContentPaddingAddition:</th>
+                                                <td>
+                                                    <input type="text" name="vpnc_awg_cpa" class="input" maxlength="11" size="32" value="<% nvram_get_x("", "vpnc_awg_cpa"); %>" onKeyPress="return is_range(this,event);"/>
+                                                    &nbsp;<span class="hint-nowrap">[ e.g. 10-100 or 0..65535 ]</span>
                                                 </td>
                                             </tr>
                                         </table>
