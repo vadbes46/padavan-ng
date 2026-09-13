@@ -77,6 +77,7 @@ function initial(){
 	}
 
 	change_vpnc_enabled();
+	update_bin_status();
 
 	showTab(getHash());
 
@@ -374,6 +375,46 @@ function change_vpnc_type() {
 	}
 
 	update_vpnc_status(vpnc_state_last);
+	update_bin_status();
+}
+
+function update_bin_status() {
+	var sb_st = (typeof bin_status_singbox === 'function') ? bin_status_singbox() : 3;
+	var xr_st = (typeof bin_status_xray === 'function') ? bin_status_xray() : 3;
+
+	var sb_el = $("sb_bin_status");
+	if (sb_el) {
+		if (sb_st == 1) {
+			sb_el.innerHTML = '<span class="label label-success"><i class="icon-ok icon-white"></i> <#VPNC_Bin_InROM#></span>';
+			showhide_div('row_sb_bin_help', 0);
+		} else if (sb_st == 2) {
+			sb_el.innerHTML = '<span class="label label-success"><i class="icon-ok icon-white"></i> <#VPNC_Bin_OnEntware#></span>';
+			showhide_div('row_sb_bin_help', 0);
+		} else if (sb_st == 3) {
+			sb_el.innerHTML = '<span class="label label-success"><i class="icon-ok icon-white"></i> <#VPNC_Bin_OnStorage#></span>';
+			showhide_div('row_sb_bin_help', 0);
+		} else {
+			sb_el.innerHTML = '<span class="label label-important"><i class="icon-warning-sign icon-white"></i> <#VPNC_Bin_NotFound#></span>';
+			showhide_div('row_sb_bin_help', 1);
+		}
+	}
+
+	var xr_el = $("xray_bin_status");
+	if (xr_el) {
+		if (xr_st == 1) {
+			xr_el.innerHTML = '<span class="label label-success"><i class="icon-ok icon-white"></i> <#VPNC_Bin_InROM#></span>';
+			showhide_div('row_xray_bin_help', 0);
+		} else if (xr_st == 2) {
+			xr_el.innerHTML = '<span class="label label-success"><i class="icon-ok icon-white"></i> <#VPNC_Bin_OnEntware#></span>';
+			showhide_div('row_xray_bin_help', 0);
+		} else if (xr_st == 3) {
+			xr_el.innerHTML = '<span class="label label-success"><i class="icon-ok icon-white"></i> <#VPNC_Bin_OnStorage#></span>';
+			showhide_div('row_xray_bin_help', 0);
+		} else {
+			xr_el.innerHTML = '<span class="label label-important"><i class="icon-warning-sign icon-white"></i> <#VPNC_Bin_NotFound#></span>';
+			showhide_div('row_xray_bin_help', 1);
+		}
+	}
 }
 
 function change_vpnc_ov_auth() {
@@ -1396,7 +1437,22 @@ function wg_conf_import() {
                                             <tr>
                                                 <th width="50%"><#VPNC_Bin_Location#></th>
                                                 <td>
-                                                    <span id="sb_bin_status" class="label label-info">/media/*/sing-box/sing-box or /usr/bin</span>
+                                                    <span id="sb_bin_status"></span>
+                                                </td>
+                                            </tr>
+                                            <tr id="row_sb_bin_help" style="display:none">
+                                                <td colspan="2" style="border-top: 0 none; padding-top: 2px;">
+                                                    <div class="alert alert-info" style="margin-bottom: 5px;">
+                                                        <strong><i class="icon-info-sign"></i> <#VPNC_USB_Hint_Title#></strong><br>
+                                                        <#VPNC_USB_Hint_Desc1#><br>
+                                                        <div style="margin: 6px 0 6px 12px;">
+                                                            1. <#VPNC_USB_Hint_Step1#><br>
+                                                            2. <#VPNC_USB_Hint_Step2#> <code>/media/&lt;диск&gt;/sing-box/sing-box</code> (из архива <code>images/sing-box-usb.tar.gz</code>)<br>
+                                                            3. <#VPNC_USB_Hint_Step3#>
+                                                        </div>
+                                                        <span class="muted"><#VPNC_USB_Hint_Console#></span><br>
+                                                        <pre style="font-size: 11px; margin: 4px 0;">mkdir -p /media/*/sing-box && cd /media/*/sing-box && wget -q -O - https://github.com/SagerNet/sing-box/releases/download/v1.14.0/sing-box-1.14.0-linux-mipsle-softfloat.tar.gz | tar -zx --strip-components=1 && chmod +x sing-box</pre>
+                                                    </div>
                                                 </td>
                                             </tr>
                                             <tr>
@@ -1431,7 +1487,20 @@ function wg_conf_import() {
                                             <tr>
                                                 <th width="50%"><#VPNC_Bin_Location#></th>
                                                 <td>
-                                                    <span id="xray_bin_status" class="label label-info">/media/*/xray/xray or /usr/bin</span>
+                                                    <span id="xray_bin_status"></span>
+                                                </td>
+                                            </tr>
+                                            <tr id="row_xray_bin_help" style="display:none">
+                                                <td colspan="2" style="border-top: 0 none; padding-top: 2px;">
+                                                    <div class="alert alert-info" style="margin-bottom: 5px;">
+                                                        <strong><i class="icon-info-sign"></i> <#VPNC_USB_Hint_Title#></strong><br>
+                                                        <#VPNC_USB_Hint_Desc1#><br>
+                                                        <div style="margin: 6px 0 6px 12px;">
+                                                            1. <#VPNC_USB_Hint_Step1#><br>
+                                                            2. <#VPNC_USB_Hint_Step2#> <code>/media/&lt;диск&gt;/xray/xray</code> (из архива <code>images/xray-usb.tar.gz</code>)<br>
+                                                            3. <#VPNC_USB_Hint_Step3#>
+                                                        </div>
+                                                    </div>
                                                 </td>
                                             </tr>
                                             <tr>

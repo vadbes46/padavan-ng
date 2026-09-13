@@ -134,6 +134,26 @@ if [ ! -f "$board_mk" ]; then
 	exit 1
 fi
 
+if [ "$CONFIG_FIRMWARE_INCLUDE_SINGBOX" = "y" ] || [ "$CONFIG_FIRMWARE_INCLUDE_XRAY" = "y" ]; then
+	fw_max_size=$(awk '/"Firmware"/{ getline; getline; gsub(/,$$/,""); print strtonum($2); }' "$partitions_cf" 2>/dev/null)
+	if [ -n "$fw_max_size" ] && [ "$fw_max_size" -lt 30000000 ]; then
+		echo "================================================================================"
+		echo "[ERROR] Target router (${CONFIG_FIRMWARE_PRODUCT_ID}) has 16MB SPI NOR flash (max size: $((fw_max_size / 1024 / 1024))MB)!"
+		echo "Sing-box and Xray-core cannot fit into the 16MB flash image."
+		echo ""
+		echo "HOW TO USE SING-BOX / XRAY ON 16MB SPI ROUTERS:"
+		echo "1. In your .config, keep in-ROM inclusion disabled:"
+		echo "   #CONFIG_FIRMWARE_INCLUDE_SINGBOX=y"
+		echo "   #CONFIG_FIRMWARE_INCLUDE_XRAY=y"
+		echo "2. Re-run ./build_firmware.sh to generate the standard ~8MB firmware image."
+		echo "3. Flash the resulting .trx image to your router."
+		echo "4. Unpack 'images/sing-box-usb.tar.gz' or 'images/xray-usb.tar.gz' to a USB flash drive."
+		echo "5. Plug the USB drive into the router. Padavan will automatically detect and start it!"
+		echo "================================================================================"
+		exit 1
+	fi
+fi
+
 rm -rf $ROOTDIR/romfs
 rm -rf $ROOTDIR/images
 mkdir -p $ROOTDIR/romfs
@@ -573,3 +593,18 @@ echo --------------------------MAKE-DEP--------------------------------
 make dep
 echo --------------------------MAKE-ALL--------------------------------
 make
+
+if [ -d "$ROOTDIR/images" ]; then
+	echo "--------------------------STANDALONE-USB-PACKAGES--------------------------"
+	make -C user/sing-box standalone >/dev/null 2>&1 || true
+	make -C user/xray standalone >/dev/null 2>&1 || true
+	if [ -f "$ROOTDIR/user/sing-box/out/sing-box-usb.tar.gz" ]; then
+		cp -f "$ROOTDIR/user/sing-box/out/sing-box-usb.tar.gz" "$ROOTDIR/images/"
+		echo "Created USB package: images/sing-box-usb.tar.gz"
+	fi
+	if [ -f "$ROOTDIR/user/xray/out/xray-usb.tar.gz" ]; then
+		cp -f "$ROOTDIR/user/xray/out/xray-usb.tar.gz" "$ROOTDIR/images/"
+		echo "Created USB package: images/xray-usb.tar.gz"
+	fi
+fi
+

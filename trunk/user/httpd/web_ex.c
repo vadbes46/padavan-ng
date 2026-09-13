@@ -2137,8 +2137,46 @@ net_update_vpnc_wg_state_hook(int eid, webs_t wp, int argc, char **argv)
 }
 
 static int
+check_binary_location(const char *app)
+{
+	DIR *dir;
+	struct dirent *de;
+	char path[256];
+
+	snprintf(path, sizeof(path), "/usr/bin/%s", app);
+	if (f_exists(path))
+		return 1;
+
+	snprintf(path, sizeof(path), "/opt/bin/%s", app);
+	if (f_exists(path))
+		return 2;
+
+	dir = opendir("/media");
+	if (dir) {
+		while ((de = readdir(dir)) != NULL) {
+			if (de->d_name[0] == '.')
+				continue;
+			snprintf(path, sizeof(path), "/media/%s/%s/%s", de->d_name, app, app);
+			if (f_exists(path)) {
+				closedir(dir);
+				return 3;
+			}
+			snprintf(path, sizeof(path), "/media/%s/%s", de->d_name, app);
+			if (f_exists(path)) {
+				closedir(dir);
+				return 3;
+			}
+		}
+		closedir(dir);
+	}
+	return 0;
+}
+
+static int
 ej_firmware_caps_hook(int eid, webs_t wp, int argc, char **argv) 
 {
+	int bin_sb = check_binary_location("sing-box");
+	int bin_xr = check_binary_location("xray");
 #if defined(UTL_HDPARM)
 	int found_utl_hdparm = 1;
 #else
@@ -2487,6 +2525,13 @@ ej_firmware_caps_hook(int eid, webs_t wp, int argc, char **argv)
 		found_app_xupnpd,
 		found_app_vlmcsd,
 		found_app_iperf3
+	);
+
+	websWrite(wp,
+		"function bin_status_singbox() { return %d;}\n"
+		"function bin_status_xray() { return %d;}\n",
+		bin_sb,
+		bin_xr
 	);
 
 	websWrite(wp,

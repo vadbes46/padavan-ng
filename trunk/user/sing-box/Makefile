@@ -29,10 +29,14 @@ romfs:
 	$(ROMFSINST) -d README.txt /etc_ro/sing-box/README.txt
 
 standalone: all
-	mkdir -p $(THISDIR)/out
-	cp -f $(SRC_NAME)/sing-box $(THISDIR)/out/sing-box
-	cp -f sing-box.sh $(THISDIR)/out/sing-box.sh
-	cp -f config.json.vless $(THISDIR)/out/config_vless.json
-	cp -f config.json.hysteria2 $(THISDIR)/out/config_hy2.json
-	cp -f README.txt $(THISDIR)/out/README.txt
-	@echo "Standalone sing-box package ready in $(THISDIR)/out"
+	rm -rf $(THISDIR)/out
+	mkdir -p $(THISDIR)/out/sing-box
+	cp -f $(SRC_NAME)/sing-box $(THISDIR)/out/sing-box/sing-box
+	chmod +x $(THISDIR)/out/sing-box/sing-box
+	cp -f sing-box.sh $(THISDIR)/out/sing-box/sing-box.sh
+	chmod +x $(THISDIR)/out/sing-box/sing-box.sh
+	cp -f config.json.vless $(THISDIR)/out/sing-box/config_vless.json
+	cp -f config.json.hysteria2 $(THISDIR)/out/sing-box/config_hy2.json
+	cp -f README.txt $(THISDIR)/out/sing-box/README.txt
+	tar -czf $(THISDIR)/out/sing-box-usb.tar.gz -C $(THISDIR)/out sing-box
+	@echo "Standalone sing-box package ready in $(THISDIR)/out/sing-box-usb.tar.gz"

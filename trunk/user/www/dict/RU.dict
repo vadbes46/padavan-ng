@@ -1876,4 +1876,14 @@ VPNC_Proxy_Routing_ProxyOnly=Только локальный SOCKS5/HTTP про�
 VPNC_Load_Hy2_Template=Загрузить шаблон Hysteria 2
 VPNC_Load_Vless_Template=Загрузить шаблон VLESS-xHTTP
 VPNC_Bin_Location=Расположение бинарного файла:
-VPNC_Bin_NotFound=Не найден (поместите файл на USB-флешку или в /usr/bin)
+VPNC_Bin_InROM=Встроен в прошивку (/usr/bin)
+VPNC_Bin_OnStorage=Обнаружен на накопителе (/media)
+VPNC_Bin_OnEntware=Обнаружен в Entware (/opt/bin)
+VPNC_Bin_NotFound=Не найден на роутере!
+VPNC_USB_Hint_Title=Как использовать на роутерах с 16 МБ SPI flash:
+VPNC_USB_Hint_Desc1=Бинарный файл не помещается во встроенную flash-память (16 МБ), поэтому запускается с USB-накопителя:
+VPNC_USB_Hint_Step1=Подключите к роутеру любую USB-флешку (FAT32, ext4 или NTFS).
+VPNC_USB_Hint_Step2=Скопируйте готовую папку в корень флешки по пути:
+VPNC_USB_Hint_Step3=После подключения накопителя обновите эту страницу — роутер сразу обнаружит бинарник.
+VPNC_USB_Hint_Console=Либо выполните в консоли роутера (SSH) команду автозагрузки:
+

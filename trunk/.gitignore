@@ -85,6 +85,7 @@ user/sing-box/out/
 user/xray/xray
 user/xray/src/
 user/xray/out/
+user/xray/*.dat
 tools/lzma/7zip-*/
 tools/mksquashfs_xz/xz-*/
 linux-3.4.x/drivers/net/wireless/ralink/rt2860v2/
