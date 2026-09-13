@@ -1447,7 +1447,7 @@ function wg_conf_import() {
                                                         <#VPNC_USB_Hint_Desc1#><br>
                                                         <div style="margin: 6px 0 6px 12px;">
                                                             1. <#VPNC_USB_Hint_Step1#><br>
-                                                            2. <#VPNC_USB_Hint_Step2#> <code>/media/&lt;диск&gt;/sing-box/sing-box</code> (из архива <code>images/sing-box-usb.tar.gz</code>)<br>
+                                                            2. <#VPNC_USB_Hint_Step2#> папка <code>images/sing-box</code> &rarr; <code>/media/&lt;диск&gt;/sing-box</code><br>
                                                             3. <#VPNC_USB_Hint_Step3#>
                                                         </div>
                                                         <span class="muted"><#VPNC_USB_Hint_Console#></span><br>
@@ -1497,7 +1497,7 @@ function wg_conf_import() {
                                                         <#VPNC_USB_Hint_Desc1#><br>
                                                         <div style="margin: 6px 0 6px 12px;">
                                                             1. <#VPNC_USB_Hint_Step1#><br>
-                                                            2. <#VPNC_USB_Hint_Step2#> <code>/media/&lt;диск&gt;/xray/xray</code> (из архива <code>images/xray-usb.tar.gz</code>)<br>
+                                                            2. <#VPNC_USB_Hint_Step2#> папка <code>images/xray</code> &rarr; <code>/media/&lt;диск&gt;/xray</code><br>
                                                             3. <#VPNC_USB_Hint_Step3#>
                                                         </div>
                                                     </div>

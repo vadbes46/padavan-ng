@@ -1877,9 +1877,9 @@ VPNC_Bin_OnStorage=Detected on storage (/media)
 VPNC_Bin_OnEntware=Detected in Entware (/opt/bin)
 VPNC_Bin_NotFound=Not found on router!
 VPNC_USB_Hint_Title=How to use on 16MB SPI Flash routers:
-VPNC_USB_Hint_Desc1=The binary does not fit into built-in 16MB SPI flash ROM, so it runs from external USB storage:
+VPNC_USB_Hint_Desc1=The binary does not fit into 16MB flash ROM, so it runs from a USB drive. Ready folder is in images/:
 VPNC_USB_Hint_Step1=Plug any USB drive into the router (FAT32, ext4, or NTFS).
-VPNC_USB_Hint_Step2=Copy the ready folder to the root of the USB drive:
+VPNC_USB_Hint_Step2=Simply copy the ready folder from the build images/ directory to the root of the USB drive:
 VPNC_USB_Hint_Step3=After plugging in the drive, refresh this page — the router will detect the binary automatically.
-VPNC_USB_Hint_Console=Or run this one-line command via router console (SSH):
+VPNC_USB_Hint_Console=Or run this command via router console (SSH) to download directly:
 

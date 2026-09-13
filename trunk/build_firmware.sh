@@ -147,7 +147,7 @@ if [ "$CONFIG_FIRMWARE_INCLUDE_SINGBOX" = "y" ] || [ "$CONFIG_FIRMWARE_INCLUDE_X
 		echo "   #CONFIG_FIRMWARE_INCLUDE_XRAY=y"
 		echo "2. Re-run ./build_firmware.sh to generate the standard ~8MB firmware image."
 		echo "3. Flash the resulting .trx image to your router."
-		echo "4. Unpack 'images/sing-box-usb.tar.gz' or 'images/xray-usb.tar.gz' to a USB flash drive."
+		echo "4. Simply copy ready unpacked folder 'images/sing-box' (or 'images/xray') to your USB drive."
 		echo "5. Plug the USB drive into the router. Padavan will automatically detect and start it!"
 		echo "================================================================================"
 		exit 1
@@ -598,13 +598,17 @@ if [ -d "$ROOTDIR/images" ]; then
 	echo "--------------------------STANDALONE-USB-PACKAGES--------------------------"
 	make -C user/sing-box standalone >/dev/null 2>&1 || true
 	make -C user/xray standalone >/dev/null 2>&1 || true
-	if [ -f "$ROOTDIR/user/sing-box/out/sing-box-usb.tar.gz" ]; then
-		cp -f "$ROOTDIR/user/sing-box/out/sing-box-usb.tar.gz" "$ROOTDIR/images/"
-		echo "Created USB package: images/sing-box-usb.tar.gz"
+	if [ -d "$ROOTDIR/user/sing-box/out/sing-box" ]; then
+		rm -rf "$ROOTDIR/images/sing-box"
+		cp -a "$ROOTDIR/user/sing-box/out/sing-box" "$ROOTDIR/images/"
+		[ -f "$ROOTDIR/user/sing-box/out/sing-box-usb.tar.gz" ] && cp -f "$ROOTDIR/user/sing-box/out/sing-box-usb.tar.gz" "$ROOTDIR/images/" 2>/dev/null || true
+		echo "Ready USB folder: images/sing-box/"
 	fi
-	if [ -f "$ROOTDIR/user/xray/out/xray-usb.tar.gz" ]; then
-		cp -f "$ROOTDIR/user/xray/out/xray-usb.tar.gz" "$ROOTDIR/images/"
-		echo "Created USB package: images/xray-usb.tar.gz"
+	if [ -d "$ROOTDIR/user/xray/out/xray" ]; then
+		rm -rf "$ROOTDIR/images/xray"
+		cp -a "$ROOTDIR/user/xray/out/xray" "$ROOTDIR/images/"
+		[ -f "$ROOTDIR/user/xray/out/xray-usb.tar.gz" ] && cp -f "$ROOTDIR/user/xray/out/xray-usb.tar.gz" "$ROOTDIR/images/" 2>/dev/null || true
+		echo "Ready USB folder: images/xray/"
 	fi
 fi
 
