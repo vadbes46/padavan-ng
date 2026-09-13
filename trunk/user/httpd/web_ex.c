@@ -2159,6 +2159,16 @@ ej_firmware_caps_hook(int eid, webs_t wp, int argc, char **argv)
 #else
 	int found_app_awg = 0;
 #endif
+#if defined(APP_SINGBOX) || defined(USE_STORAGE) || defined(USE_NAND_FLASH)
+	int found_app_singbox = 1;
+#else
+	int found_app_singbox = (f_exists("/usr/bin/sing-box") || f_exists("/opt/bin/sing-box"));
+#endif
+#if defined(APP_XRAY) || defined(USE_STORAGE) || defined(USE_NAND_FLASH)
+	int found_app_xray = 1;
+#else
+	int found_app_xray = (f_exists("/usr/bin/xray") || f_exists("/opt/bin/xray"));
+#endif
 #if defined(APP_MINIDLNA)
 	int found_app_dlna = 1;
 #else
@@ -2421,6 +2431,8 @@ ej_firmware_caps_hook(int eid, webs_t wp, int argc, char **argv)
 		"function found_app_ovpn() { return %d;}\n"
 		"function found_app_wg() { return %d;}\n"
 		"function found_app_awg() { return %d;}\n"
+		"function found_app_singbox() { return %d;}\n"
+		"function found_app_xray() { return %d;}\n"
 		"function found_app_dlna() { return %d;}\n"
 		"function found_app_torr() { return %d;}\n"
 		"function found_app_aria() { return %d;}\n"
@@ -2449,6 +2461,8 @@ ej_firmware_caps_hook(int eid, webs_t wp, int argc, char **argv)
 		found_app_ovpn,
 		found_app_wg,
 		found_app_awg,
+		found_app_singbox,
+		found_app_xray,
 		found_app_dlna,
 		found_app_trmd,
 		found_app_aria,

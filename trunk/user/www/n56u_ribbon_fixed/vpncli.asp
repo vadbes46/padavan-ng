@@ -65,6 +65,10 @@ function initial(){
 		$j("#vpnc_type option[value='3']").remove();
 	if (!found_app_awg())
 		$j("#vpnc_type option[value='4']").remove();
+	if (typeof found_app_singbox === 'function' ? !found_app_singbox() : false)
+		$j("#vpnc_type option[value='5']").remove();
+	if (typeof found_app_xray === 'function' ? !found_app_xray() : false)
+		$j("#vpnc_type option[value='6']").remove();
 
 	if (fw_enable_x == "0"){
 		var o1 = document.form.vpnc_sfw;
@@ -81,7 +85,7 @@ function initial(){
 
 function update_vpnc_status(vpnc_state){
 	this.vpnc_state_last = vpnc_state;
-	if (vpnc_type == 3 || vpnc_type == 4) {
+	if (vpnc_type == 3 || vpnc_type == 4 || vpnc_type == 5 || vpnc_type == 6) {
 		showhide_div('col_vpnc_wg_state', (vpnc_state != 0 && document.form.vpnc_enable[0].checked) ? 1 : 0);
 		if (vpnc_state == 2) {
 			$("col_vpnc_wg_state").innerHTML = '<#Connecting#>';
@@ -146,14 +150,30 @@ function validForm(){
 
 	var mode = document.form.vpnc_type.value;
 
-	if ((mode != "3") && (mode != "4") && document.form.vpnc_peer.value.length < 4) {
+	if ((mode != "3") && (mode != "4") && (mode != "5") && (mode != "6") && document.form.vpnc_peer.value.length < 4) {
 		alert("Remote host is invalid!");
 		document.form.vpnc_peer.focus();
 		return false;
 	}
 
-	if(!validate_string(document.form.vpnc_peer))
-		return false;
+	if (mode != "5" && mode != "6") {
+		if(!validate_string(document.form.vpnc_peer))
+			return false;
+	}
+
+	if (mode == "5") {
+		var sb_el = document.getElementById("scripts.singbox_config.json");
+		if (sb_el && sb_el.value.trim().length > 0) {
+			try { JSON.parse(sb_el.value); } catch(e) { alert("Invalid JSON syntax in Sing-box config: " + e.message); return false; }
+		}
+	}
+
+	if (mode == "6") {
+		var xr_el = document.getElementById("scripts.xray_config.json");
+		if (xr_el && xr_el.value.trim().length > 0) {
+			try { JSON.parse(xr_el.value); } catch(e) { alert("Invalid JSON syntax in Xray config: " + e.message); return false; }
+		}
+	}
 
 	if (mode == "3" || mode == "4") {
 		if(!validate_range(document.form.vpnc_wg_peer_keepalive, 0, 65535))
@@ -300,15 +320,19 @@ function change_vpnc_type() {
 	var is_ov = (mode == "2") ? 1 : 0;
 	var is_wg = (mode == "3") ? 1 : 0;
 	var is_awg = (mode == "4") ? 1 : 0;
+	var is_sb = (mode == "5") ? 1 : 0;
+	var is_xray = (mode == "6") ? 1 : 0;
+	var is_proxy_proto = (is_sb || is_xray) ? 1 : 0;
 	var is_wg_family = (is_wg || is_awg) ? 1 : 0;
 	vpnc_type = parseInt(mode, 10);
 
-	showhide_div('row_vpnc_auth', !is_ov && !is_wg_family);
-	showhide_div('row_vpnc_mppe', !is_ov && !is_wg_family);
-	showhide_div('row_vpnc_pppd', !is_ov && !is_wg_family);
-	showhide_div('row_vpnc_mtu', !is_ov && !is_wg_family);
-	showhide_div('row_vpnc_mru', !is_ov && !is_wg_family);
-	showhide_div('tbl_vpnc_route', !is_ov && !is_wg_family);
+	showhide_div('row_vpnc_auth', !is_ov && !is_wg_family && !is_proxy_proto);
+	showhide_div('row_vpnc_mppe', !is_ov && !is_wg_family && !is_proxy_proto);
+	showhide_div('row_vpnc_pppd', !is_ov && !is_wg_family && !is_proxy_proto);
+	showhide_div('row_vpnc_mtu', !is_ov && !is_wg_family && !is_proxy_proto);
+	showhide_div('row_vpnc_mru', !is_ov && !is_wg_family && !is_proxy_proto);
+	showhide_div('tbl_vpnc_route', !is_ov && !is_wg_family && !is_proxy_proto);
+	showhide_div('tbl_vpnc_server', !is_proxy_proto);
 
 	showhide_div('row_vpnc_ov_import', is_ov);
 	showhide_div('row_vpnc_ov_port', is_ov);
@@ -328,7 +352,9 @@ function change_vpnc_type() {
 
 	showhide_div('row_vpnc_wg', is_wg_family);
 	showhide_div('row_vpnc_awg', is_awg);
-	showhide_div('vpnc_peer_row', !is_wg_family);
+	showhide_div('row_vpnc_singbox', is_sb);
+	showhide_div('row_vpnc_xray', is_xray);
+	showhide_div('vpnc_peer_row', !is_wg_family && !is_proxy_proto);
 	showhide_div('row_vpnc_exclude_network', is_wg_family);
 	showhide_div('row_vpnc_remote_network', is_wg_family);
 
@@ -343,8 +369,8 @@ function change_vpnc_type() {
 	else {
 		showhide_div('row_vpnc_ov_cnat', 0);
 
-		showhide_div('row_vpnc_user', !is_wg_family);
-		showhide_div('row_vpnc_pass', !is_wg_family);
+		showhide_div('row_vpnc_user', !is_wg_family && !is_proxy_proto);
+		showhide_div('row_vpnc_pass', !is_wg_family && !is_proxy_proto);
 	}
 
 	update_vpnc_status(vpnc_state_last);
@@ -366,8 +392,134 @@ function change_vpnc_ov_atls() {
 	inputCtrl(document.form['ovpncli.ta.key'], v);
 }
 
-function change_vpnc_ov_mode() {
-	showhide_div('row_vpnc_ov_cnat', (document.form.vpnc_ov_mode.value == "1") ? 0 : 1);
+function load_sb_template(type) {
+	var ta = document.getElementById("scripts.singbox_config.json");
+	if (!ta) return;
+	if (ta.value.trim().length > 0 && !confirm("Replace existing configuration with template?"))
+		return;
+	if (type == 'hy2') {
+		ta.value = JSON.stringify({
+			"log": { "level": "warn", "timestamp": true },
+			"dns": {
+				"servers": [
+					{ "tag": "remote-dns", "type": "https", "server": "1.1.1.1", "detour": "hy2-out" },
+					{ "tag": "local-dns", "type": "local" }
+				]
+			},
+			"inbounds": [
+				{
+					"type": "tun", "tag": "tun-in", "interface_name": "tun0",
+					"address": [ "172.19.0.1/30" ],
+					"auto_route": false, "strict_route": false, "stack": "gvisor"
+				},
+				{ "type": "mixed", "tag": "mixed-in", "listen": "0.0.0.0", "listen_port": 1080 }
+			],
+			"outbounds": [
+				{
+					"type": "hysteria2", "tag": "hy2-out",
+					"server": "vadbes46.online", "server_port": 443,
+					"server_ports": [ "20000:50000" ], "hop_interval": "30s",
+					"password": "vadbes46:a0f75ad5-0f7c-4740-bc72-d4d45b360562",
+					"tls": { "enabled": true, "server_name": "vadbes46.online", "insecure": false },
+					"obfs": { "type": "salamander", "password": "2334fa2e2fe01ed2341cd0b65e661497" }
+				},
+				{ "type": "direct", "tag": "direct" }
+			],
+			"route": {
+				"auto_detect_interface": true,
+				"default_domain_resolver": "local-dns",
+				"rules": [
+					{ "action": "hijack-dns", "protocol": "dns" },
+					{ "ip_is_private": true, "outbound": "direct" }
+				]
+			}
+		}, null, 2);
+	} else {
+		ta.value = JSON.stringify({
+			"log": { "level": "warn", "timestamp": true },
+			"dns": {
+				"servers": [
+					{ "tag": "remote-dns", "type": "https", "server": "1.1.1.1", "detour": "vless-out" },
+					{ "tag": "local-dns", "type": "local" }
+				]
+			},
+			"inbounds": [
+				{
+					"type": "tun", "tag": "tun-in", "interface_name": "tun0",
+					"address": [ "172.19.0.1/30" ],
+					"auto_route": false, "strict_route": false, "stack": "gvisor"
+				},
+				{ "type": "mixed", "tag": "mixed-in", "listen": "0.0.0.0", "listen_port": 1080 }
+			],
+			"outbounds": [
+				{
+					"type": "vless", "tag": "vless-out",
+					"server": "vadbes46.online", "server_port": 443,
+					"uuid": "a0f75ad5-0f7c-4740-bc72-d4d45b360562",
+					"tls": { "enabled": true, "server_name": "vadbes46.online", "insecure": false, "utls": { "enabled": true, "fingerprint": "chrome" } },
+					"transport": { "type": "ws", "path": "/ray-ws", "headers": { "Host": "vadbes46.online" } }
+				},
+				{ "type": "direct", "tag": "direct" }
+			],
+			"route": {
+				"auto_detect_interface": true,
+				"default_domain_resolver": "local-dns",
+				"rules": [
+					{ "action": "hijack-dns", "protocol": "dns" },
+					{ "ip_is_private": true, "outbound": "direct" }
+				]
+			}
+		}, null, 2);
+	}
+}
+
+function load_xray_template() {
+	var ta = document.getElementById("scripts.xray_config.json");
+	if (!ta) return;
+	if (ta.value.trim().length > 0 && !confirm("Replace existing configuration with template?"))
+		return;
+	ta.value = JSON.stringify({
+		"log": { "loglevel": "warning" },
+		"inbounds": [
+			{
+				"port": 1080, "listen": "0.0.0.0", "protocol": "socks",
+				"settings": { "auth": "noauth", "udp": true },
+				"sniffing": { "enabled": true, "destOverride": ["http", "tls", "quic"] }
+			},
+			{
+				"port": 1081, "listen": "0.0.0.0", "protocol": "http",
+				"settings": {},
+				"sniffing": { "enabled": true, "destOverride": ["http", "tls"] }
+			},
+			{
+				"port": 1082, "listen": "0.0.0.0", "protocol": "dokodemo-door",
+				"settings": { "network": "tcp,udp", "followRedirect": true },
+				"sniffing": { "enabled": true, "destOverride": ["http", "tls", "quic"] }
+			}
+		],
+		"outbounds": [
+			{
+				"tag": "proxy", "protocol": "vless",
+				"settings": {
+					"vnext": [{
+						"address": "vadbes46.online", "port": 443,
+						"users": [{ "id": "a0f75ad5-0f7c-4740-bc72-d4d45b360562", "encryption": "none" }]
+					}]
+				},
+				"streamSettings": {
+					"network": "xhttp", "security": "tls",
+					"tlsSettings": { "serverName": "vadbes46.online", "fingerprint": "firefox" },
+					"xhttpSettings": { "path": "/ray-xhttp", "host": "vadbes46.online", "mode": "auto" }
+				}
+			},
+			{ "tag": "direct", "protocol": "freedom" },
+			{ "tag": "block", "protocol": "blackhole" }
+		],
+		"routing": {
+			"domainStrategy": "AsIs",
+			"rules": [{ "type": "field", "ip": ["geoip:private"], "outboundTag": "direct" }]
+		}
+	}, null, 2);
 }
 
 function ov_conf_import() {
@@ -1030,6 +1182,8 @@ function wg_conf_import() {
                                             <option value="2" <% nvram_match_x("", "vpnc_type", "2","selected"); %>>OpenVPN</option>
                                             <option value="3" <% nvram_match_x("", "vpnc_type", "3","selected"); %>>Wireguard</option>
                                             <option value="4" <% nvram_match_x("", "vpnc_type", "4","selected"); %>>AmneziaWG</option>
+                                            <option value="5" <% nvram_match_x("", "vpnc_type", "5","selected"); %>><#VPNC_Type_Singbox#></option>
+                                            <option value="6" <% nvram_match_x("", "vpnc_type", "6","selected"); %>><#VPNC_Type_Xray#></option>
                                         </select>
                                         <span id="certs_hint" style="display:none" class="label label-warning"><#OVPN_Hint#></span>
                                     </td>
@@ -1230,6 +1384,75 @@ function wg_conf_import() {
                                                 <td>
                                                     <input type="text" name="vpnc_awg_i1" class="input" maxlength="4096" size="32" value="<% nvram_get_x("", "vpnc_awg_i1"); %>"/>
                                                     &nbsp;<span class="hint-nowrap">[ &lt;tags&gt; ]</span>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+
+                                <tr id="row_vpnc_singbox" style="display:none">
+                                    <td colspan="2" style="padding-left: 0px; padding-right: 0px; border-top: 0 none;">
+                                        <table width="100%">
+                                            <tr>
+                                                <th width="50%"><#VPNC_Bin_Location#></th>
+                                                <td>
+                                                    <span id="sb_bin_status" class="label label-info">/media/*/sing-box/sing-box or /usr/bin</span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th><#VPNC_Proxy_Routing#></th>
+                                                <td>
+                                                    <select name="vpnc_sb_routing" class="input" style="width: 320px;">
+                                                        <option value="0" <% nvram_match_x("", "vpnc_sb_routing", "0","selected"); %>><#VPNC_Proxy_Routing_Full#></option>
+                                                        <option value="1" <% nvram_match_x("", "vpnc_sb_routing", "1","selected"); %>><#VPNC_Proxy_Routing_Unblock#></option>
+                                                    </select>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th colspan="2" style="padding-top: 10px; border-bottom: 0 none;">
+                                                    <a href="javascript:spoiler_toggle('spoiler_sb_conf')"><span><#VPNC_SB_Config#></span> <i style="scale: 75%;" class="icon-chevron-down"></i></a>
+                                                    &nbsp;&nbsp;
+                                                    <button type="button" class="btn btn-mini btn-info" onclick="load_sb_template('hy2');"><#VPNC_Load_Hy2_Template#></button>
+                                                    <button type="button" class="btn btn-mini" onclick="load_sb_template('vless');">VLESS Template</button>
+                                                </th>
+                                            </tr>
+                                            <tr>
+                                                <td colspan="2" id="spoiler_sb_conf" style="border-top: 0 none; padding-top: 4px;">
+                                                    <textarea rows="16" wrap="off" spellcheck="false" maxlength="32768" class="span12" id="scripts.singbox_config.json" name="scripts.singbox_config.json" style="resize:vertical; font-family:'Courier New'; font-size:12px;"><% nvram_dump("scripts.singbox_config.json",""); %></textarea>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+
+                                <tr id="row_vpnc_xray" style="display:none">
+                                    <td colspan="2" style="padding-left: 0px; padding-right: 0px; border-top: 0 none;">
+                                        <table width="100%">
+                                            <tr>
+                                                <th width="50%"><#VPNC_Bin_Location#></th>
+                                                <td>
+                                                    <span id="xray_bin_status" class="label label-info">/media/*/xray/xray or /usr/bin</span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th><#VPNC_Proxy_Routing#></th>
+                                                <td>
+                                                    <select name="vpnc_xray_routing" class="input" style="width: 320px;">
+                                                        <option value="0" <% nvram_match_x("", "vpnc_xray_routing", "0","selected"); %>><#VPNC_Proxy_Routing_ProxyOnly#></option>
+                                                        <option value="1" <% nvram_match_x("", "vpnc_xray_routing", "1","selected"); %>><#VPNC_Proxy_Routing_Unblock#></option>
+                                                    </select>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th colspan="2" style="padding-top: 10px; border-bottom: 0 none;">
+                                                    <a href="javascript:spoiler_toggle('spoiler_xray_conf')"><span><#VPNC_XRAY_Config#></span> <i style="scale: 75%;" class="icon-chevron-down"></i></a>
+                                                    &nbsp;&nbsp;
+                                                    <button type="button" class="btn btn-mini btn-info" onclick="load_xray_template();"><#VPNC_Load_Vless_Template#></button>
+                                                </th>
+                                            </tr>
+                                            <tr>
+                                                <td colspan="2" id="spoiler_xray_conf" style="border-top: 0 none; padding-top: 4px;">
+                                                    <textarea rows="16" wrap="off" spellcheck="false" maxlength="32768" class="span12" id="scripts.xray_config.json" name="scripts.xray_config.json" style="resize:vertical; font-family:'Courier New'; font-size:12px;"><% nvram_dump("scripts.xray_config.json",""); %></textarea>
                                                 </td>
                                             </tr>
                                         </table>
