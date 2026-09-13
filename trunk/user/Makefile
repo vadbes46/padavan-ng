@@ -119,6 +119,7 @@ dir_$(CONFIG_FIRMWARE_INCLUDE_SSWAN)		+= strongswan
 dir_$(CONFIG_FIRMWARE_INCLUDE_WIREGUARD)	+= wireguard
 dir_$(CONFIG_FIRMWARE_INCLUDE_AMNEZIAWG)        += amneziawg
 dir_$(CONFIG_FIRMWARE_INCLUDE_SINGBOX)          += sing-box
+dir_$(CONFIG_FIRMWARE_INCLUDE_XRAY)             += xray
 dir_$(CONFIG_FIRMWARE_INCLUDE_TCPDUMP)		+= tcpdump
 dir_$(CONFIG_FIRMWARE_INCLUDE_ADB)		+= adb
 dir_$(CONFIG_FIRMWARE_INCLUDE_MINISATIP)	+= minisatip
