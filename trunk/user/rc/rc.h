@@ -436,6 +436,15 @@ void stop_amneziawg_client(void);
 void restart_amneziawg_client(void);
 #endif
 
+/* singbox and xray clients */
+int start_singbox_client(void);
+void stop_singbox_client(void);
+void restart_singbox_client(void);
+
+int start_xray_client(void);
+void stop_xray_client(void);
+void restart_xray_client(void);
+
 /* net_wifi.c */
 void mlme_state_wl(int is_on);
 void mlme_state_rt(int is_on);

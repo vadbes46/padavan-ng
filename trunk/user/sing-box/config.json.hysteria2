@@ -7,13 +7,13 @@
     "servers": [
       {
         "tag": "remote-dns",
-        "address": "udp://1.1.1.1",
+        "type": "https",
+        "server": "1.1.1.1",
         "detour": "hy2-out"
       },
       {
         "tag": "local-dns",
-        "address": "local",
-        "detour": "direct"
+        "type": "local"
       }
     ]
   },
@@ -22,11 +22,12 @@
       "type": "tun",
       "tag": "tun-in",
       "interface_name": "tun0",
-      "inet4_address": "172.19.0.1/30",
-      "auto_route": true,
+      "address": [
+        "172.19.0.1/30"
+      ],
+      "auto_route": false,
       "strict_route": false,
-      "stack": "system",
-      "sniff": true
+      "stack": "gvisor"
     },
     {
       "type": "mixed",
@@ -39,42 +40,38 @@
     {
       "type": "hysteria2",
       "tag": "hy2-out",
-      "server": "YOUR_SERVER_IP",
+      "server": "YOUR_SERVER_IP_OR_HOST",
       "server_port": 443,
+      "server_ports": [
+        "20000:50000"
+      ],
+      "hop_interval": "30s",
       "password": "YOUR_PASSWORD_HERE",
       "tls": {
         "enabled": true,
         "server_name": "your.domain.com",
         "insecure": false
       },
-      "brutal": {
-        "enabled": true,
-        "up_mbps": 50,
-        "down_mbps": 100
+      "obfs": {
+        "type": "salamander",
+        "password": "YOUR_OBFS_PASSWORD_IF_ANY"
       }
     },
     {
       "type": "direct",
       "tag": "direct"
-    },
-    {
-      "type": "dns",
-      "tag": "dns-out"
     }
   ],
   "route": {
     "auto_detect_interface": true,
+    "default_domain_resolver": "local-dns",
     "rules": [
       {
-        "protocol": "dns",
-        "outbound": "dns-out"
+        "action": "hijack-dns",
+        "protocol": "dns"
       },
       {
         "ip_is_private": true,
-        "outbound": "direct"
-      },
-      {
-        "geoip": "ru",
         "outbound": "direct"
       }
     ]

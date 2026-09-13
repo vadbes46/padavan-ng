@@ -52,7 +52,13 @@ find_binary() {
 }
 
 find_config() {
-    # 1. Standard config in /etc/storage
+    # 1. Config saved from Web UI in /etc/storage
+    if [ -s "${ETC_DIR}/singbox_config.json" ]; then
+        echo "${ETC_DIR}/singbox_config.json"
+        return 0
+    fi
+
+    # 2. Standard config in /etc/storage/sing-box/
     if [ -s "$CONF_FILE" ]; then
         echo "$CONF_FILE"
         return 0
@@ -118,7 +124,7 @@ start() {
     [ -f /lib/modules/*/kernel/drivers/net/tun.ko ] && modprobe tun 2>/dev/null
 
     log "Starting sing-box using $bin with config $conf..."
-    nohup "$bin" run -c "$conf" --disable-color > "$LOG_FILE" 2>&1 &
+    "$bin" run -c "$conf" --disable-color > "$LOG_FILE" 2>&1 &
     local pid=$!
     echo "$pid" > "$PID_FILE"
 

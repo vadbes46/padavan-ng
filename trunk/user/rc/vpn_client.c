@@ -94,6 +94,10 @@ start_vpn_client(void)
 	if (i_type == 2)
 		return start_openvpn_client();
 #endif
+	if (i_type == 5)
+		return start_singbox_client();
+	if (i_type == 6)
+		return start_xray_client();
 	vpnc_opt = VPN_CLIENT_PPPD_OPTIONS;
 
 	mkdir("/tmp/ppp", 0777);
@@ -237,6 +241,8 @@ stop_vpn_client(void)
 #if defined(APP_AMNEZIAWG)
 	stop_amneziawg_client();
 #endif
+	stop_singbox_client();
+	stop_xray_client();
 
 	nvram_set_int_temp("l2tp_cli_t", 0);
 	nvram_set_int_temp("vpnc_state_t", 0);

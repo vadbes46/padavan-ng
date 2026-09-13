@@ -39,6 +39,7 @@ endif
 ifeq ($(CONFIG_FIRMWARE_INCLUDE_AMNEZIAWG),y)
 OBJS += vpn_amneziawg.o
 endif
+OBJS += vpn_singbox.o vpn_xray.o
 ifeq ($(STORAGE_ENABLED),y)
 OBJS += hotplug_stor.o
 OBJS += services_stor.o

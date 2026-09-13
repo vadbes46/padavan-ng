@@ -7,13 +7,13 @@
     "servers": [
       {
         "tag": "remote-dns",
-        "address": "tls://1.1.1.1",
+        "type": "https",
+        "server": "1.1.1.1",
         "detour": "vless-out"
       },
       {
         "tag": "local-dns",
-        "address": "local",
-        "detour": "direct"
+        "type": "local"
       }
     ]
   },
@@ -22,11 +22,12 @@
       "type": "tun",
       "tag": "tun-in",
       "interface_name": "tun0",
-      "inet4_address": "172.19.0.1/30",
-      "auto_route": true,
+      "address": [
+        "172.19.0.1/30"
+      ],
+      "auto_route": false,
       "strict_route": false,
-      "stack": "system",
-      "sniff": true
+      "stack": "gvisor"
     },
     {
       "type": "mixed",
@@ -39,46 +40,42 @@
     {
       "type": "vless",
       "tag": "vless-out",
-      "server": "YOUR_SERVER_IP",
+      "server": "YOUR_SERVER_IP_OR_HOST",
       "server_port": 443,
       "uuid": "YOUR_UUID_HERE",
-      "flow": "xtls-rprx-vision",
+      "flow": "",
       "tls": {
         "enabled": true,
-        "server_name": "www.microsoft.com",
+        "server_name": "your.domain.com",
+        "insecure": false,
         "utls": {
           "enabled": true,
           "fingerprint": "chrome"
-        },
-        "reality": {
-          "enabled": true,
-          "public_key": "YOUR_REALITY_PUBLIC_KEY",
-          "short_id": "YOUR_SHORT_ID"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/ray-ws",
+        "headers": {
+          "Host": "your.domain.com"
         }
       }
     },
     {
       "type": "direct",
       "tag": "direct"
-    },
-    {
-      "type": "dns",
-      "tag": "dns-out"
     }
   ],
   "route": {
     "auto_detect_interface": true,
+    "default_domain_resolver": "local-dns",
     "rules": [
       {
-        "protocol": "dns",
-        "outbound": "dns-out"
+        "action": "hijack-dns",
+        "protocol": "dns"
       },
       {
         "ip_is_private": true,
-        "outbound": "direct"
-      },
-      {
-        "geoip": "ru",
         "outbound": "direct"
       }
     ]
