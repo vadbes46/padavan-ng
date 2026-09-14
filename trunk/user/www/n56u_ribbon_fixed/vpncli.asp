@@ -1157,6 +1157,111 @@ function wg_conf_import() {
 	reader.readAsText(file);
 }
 
+var current_editor_target = null;
+
+function open_modal_editor(fieldName, title) {
+	current_editor_target = document.form[fieldName];
+	if (!current_editor_target)
+		return;
+
+	$j('#modal_editor_title').text(title || '<#CTL_modify#>');
+	$j('#modal_editor_content').val(current_editor_target.value);
+	$j('#modal_editor_msg').text('');
+	update_modal_editor_stats();
+	$j('#modal_text_editor').modal('show');
+}
+
+function update_modal_editor_stats() {
+	var val = $j('#modal_editor_content').val() || '';
+	var lines = 0;
+	if (val.length > 0) {
+		var match = val.match(/\n/g);
+		lines = match ? match.length + 1 : 1;
+	}
+	var kb = (val.length / 1024).toFixed(1);
+	$j('#modal_editor_stats').text(lines + ' lines | ' + kb + ' KB');
+}
+
+function modal_editor_apply() {
+	if (current_editor_target) {
+		current_editor_target.value = $j('#modal_editor_content').val();
+	}
+	$j('#modal_text_editor').modal('hide');
+}
+
+function modal_editor_apply_and_save() {
+	modal_editor_apply();
+	applyRule();
+}
+
+function modal_editor_clean() {
+	var val = $j('#modal_editor_content').val();
+	var lines = val.split(/\r\n|\r|\n/);
+	var filtered = [];
+	for (var i = 0; i < lines.length; i++) {
+		var t = lines[i].trim();
+		if (t.length > 0)
+			filtered.push(t);
+	}
+	$j('#modal_editor_content').val(filtered.join('\n'));
+	update_modal_editor_stats();
+}
+
+function modal_editor_dedup() {
+	var val = $j('#modal_editor_content').val();
+	var lines = val.split(/\r\n|\r|\n/);
+	var seen = {};
+	var unique = [];
+	for (var i = 0; i < lines.length; i++) {
+		var t = lines[i].trim();
+		if (t.length > 0 && !seen[t]) {
+			seen[t] = true;
+			unique.push(t);
+		}
+	}
+	$j('#modal_editor_content').val(unique.join('\n'));
+	update_modal_editor_stats();
+}
+
+function modal_editor_sort() {
+	var val = $j('#modal_editor_content').val();
+	var lines = val.split(/\r\n|\r|\n/);
+	var filtered = [];
+	for (var i = 0; i < lines.length; i++) {
+		var t = lines[i].trim();
+		if (t.length > 0)
+			filtered.push(t);
+	}
+	filtered.sort();
+	$j('#modal_editor_content').val(filtered.join('\n'));
+	update_modal_editor_stats();
+}
+
+function modal_editor_copy() {
+	var el = document.getElementById('modal_editor_content');
+	if (!el) return;
+	el.focus();
+	el.select();
+	try {
+		document.execCommand('copy');
+		$j('#modal_editor_msg').text('<#CTL_copy#> OK').show().fadeOut(2500);
+	} catch(e) {
+		alert('Copy failed');
+	}
+}
+
+function modal_editor_load_file(input) {
+	if (input.files && input.files[0]) {
+		var reader = new FileReader();
+		reader.onload = function(e) {
+			$j('#modal_editor_content').val(e.target.result);
+			update_modal_editor_stats();
+		};
+		reader.readAsText(input.files[0]);
+	}
+	input.value = '';
+}
+
 </script>
 
 <style>
@@ -1166,6 +1271,34 @@ function wg_conf_import() {
     .hint-nowrap {
         color: #888;
         white-space: nowrap;
+    }
+    .modal-editor {
+        width: 86% !important;
+        max-width: 960px !important;
+        left: 50% !important;
+        margin-left: -43% !important;
+        top: 4% !important;
+        margin-top: 0 !important;
+    }
+    @media (min-width: 1120px) {
+        .modal-editor {
+            width: 960px !important;
+            margin-left: -480px !important;
+        }
+    }
+    .modal-editor .modal-body {
+        max-height: calc(82vh - 140px) !important;
+        padding: 10px 15px !important;
+    }
+    .modal-editor textarea {
+        width: 100% !important;
+        height: 52vh !important;
+        min-height: 380px !important;
+        box-sizing: border-box !important;
+        font-family: 'Courier New', monospace !important;
+        font-size: 12px !important;
+        line-height: 1.4 !important;
+        resize: vertical !important;
     }
 </style>
 
@@ -1752,9 +1885,12 @@ function wg_conf_import() {
                                 </tr>
                                 <tr id="row_vpnc_ov_conf" style="display:none">
                                     <td colspan="2" style="padding-bottom: 0px;">
-                                        <a href="javascript:spoiler_toggle('spoiler_vpnc_ov_conf')"><span><#OVPN_User#></span></a>
+                                        <div style="margin-bottom: 4px;">
+                                            <a href="javascript:spoiler_toggle('spoiler_vpnc_ov_conf')"><span><#OVPN_User#></span></a>
+                                            <button type="button" class="btn btn-mini btn-info pull-right" onclick="open_modal_editor('ovpncli.client.conf', '<#OVPN_User#>');"><i class="icon-resize-full icon-white"></i> Редактор в окне</button>
+                                        </div>
                                         <div id="spoiler_vpnc_ov_conf" style="display:none;">
-                                            <textarea rows="16" wrap="off" spellcheck="false" maxlength="8192" class="span12" name="ovpncli.client.conf" style="resize: vertical; font-family:'Courier New'; font-size:12px;"><% nvram_dump("ovpncli.client.conf",""); %></textarea>
+                                            <textarea rows="18" wrap="off" spellcheck="false" class="span12" name="ovpncli.client.conf" style="resize: vertical; font-family:'Courier New'; font-size:12px;"><% nvram_dump("ovpncli.client.conf",""); %></textarea>
                                         </div>
                                     </td>
                                 </tr>
@@ -1794,26 +1930,35 @@ function wg_conf_import() {
                                     </td>
                                 </tr>
                                 <tr id="row_vpnc_remote_network" style="display: none">
-                                    <td colspan="2"">
-                                        <a href="javascript:spoiler_toggle('spoiler_vpnc_remote_network')"><span><#VPNC_RNet_List#>:</span></a>
+                                    <td colspan="2">
+                                        <div style="margin-bottom: 4px;">
+                                            <a href="javascript:spoiler_toggle('spoiler_vpnc_remote_network')"><span><#VPNC_RNet_List#>:</span></a>
+                                            <button type="button" class="btn btn-mini btn-info pull-right" onclick="open_modal_editor('scripts.vpnc_remote_network.list', '<#VPNC_RNet_List#>');"><i class="icon-resize-full icon-white"></i> Редактор в окне</button>
+                                        </div>
                                         <div id="spoiler_vpnc_remote_network" style="display: none">
-                                            <textarea rows="16" wrap="off" spellcheck="false" maxlength="8192" class="span12" name="scripts.vpnc_remote_network.list" style="font-family:'Courier New'; font-size:12px; resize:vertical;"><% nvram_dump("scripts.vpnc_remote_network.list",""); %></textarea>
+                                            <textarea rows="18" wrap="off" spellcheck="false" class="span12" name="scripts.vpnc_remote_network.list" style="font-family:'Courier New'; font-size:12px; resize:vertical;"><% nvram_dump("scripts.vpnc_remote_network.list",""); %></textarea>
                                         </div>
                                     </td>
                                 </tr>
                                 <tr id="row_vpnc_exclude_network" style="display: none">
-                                    <td colspan="2"">
-                                        <a href="javascript:spoiler_toggle('spoiler_vpnc_exclude_network')"><span><#VPNC_ExcludeList#>:</span></a>
+                                    <td colspan="2">
+                                        <div style="margin-bottom: 4px;">
+                                            <a href="javascript:spoiler_toggle('spoiler_vpnc_exclude_network')"><span><#VPNC_ExcludeList#>:</span></a>
+                                            <button type="button" class="btn btn-mini btn-info pull-right" onclick="open_modal_editor('scripts.vpnc_exclude_network.list', '<#VPNC_ExcludeList#>');"><i class="icon-resize-full icon-white"></i> Редактор в окне</button>
+                                        </div>
                                         <div id="spoiler_vpnc_exclude_network" style="display: none">
-                                            <textarea rows="16" wrap="off" spellcheck="false" maxlength="8192" class="span12" name="scripts.vpnc_exclude_network.list" style="font-family:'Courier New'; font-size:12px; resize:vertical;"><% nvram_dump("scripts.vpnc_exclude_network.list",""); %></textarea>
+                                            <textarea rows="18" wrap="off" spellcheck="false" class="span12" name="scripts.vpnc_exclude_network.list" style="font-family:'Courier New'; font-size:12px; resize:vertical;"><% nvram_dump("scripts.vpnc_exclude_network.list",""); %></textarea>
                                         </div>
                                     </td>
                                 </tr>
                                 <tr>
                                     <td colspan="2" style="padding-bottom: 0px;">
-                                        <a href="javascript:spoiler_toggle('spoiler_script')"><span><#RunPostVPNC#></span></a>
+                                        <div style="margin-bottom: 4px;">
+                                            <a href="javascript:spoiler_toggle('spoiler_script')"><span><#RunPostVPNC#></span></a>
+                                            <button type="button" class="btn btn-mini btn-info pull-right" onclick="open_modal_editor('scripts.vpnc_server_script.sh', '<#RunPostVPNC#>');"><i class="icon-resize-full icon-white"></i> Редактор в окне</button>
+                                        </div>
                                         <div id="spoiler_script" style="display:none;">
-                                            <textarea rows="16" wrap="off" spellcheck="false" maxlength="8192" class="span12" name="scripts.vpnc_server_script.sh" style="font-family:'Courier New'; font-size:12px; resize:vertical;"><% nvram_dump("scripts.vpnc_server_script.sh",""); %></textarea>
+                                            <textarea rows="18" wrap="off" spellcheck="false" class="span12" name="scripts.vpnc_server_script.sh" style="font-family:'Courier New'; font-size:12px; resize:vertical;"><% nvram_dump("scripts.vpnc_server_script.sh",""); %></textarea>
                                         </div>
                                     </td>
                                 </tr>
@@ -1842,25 +1987,25 @@ function wg_conf_import() {
                                 <tr>
                                     <td style="padding-bottom: 0px; border-top: 0 none;">
                                         <span class="caption-bold">ca.crt (Root CA Certificate):</span>
-                                        <textarea rows="4" wrap="off" spellcheck="false" maxlength="8192" class="span12" name="ovpncli.ca.crt" style="resize: vertical; font-family:'Courier New'; font-size:12px;"><% nvram_dump("ovpncli.ca.crt",""); %></textarea>
+                                        <textarea rows="4" wrap="off" spellcheck="false" class="span12" name="ovpncli.ca.crt" style="resize: vertical; font-family:'Courier New'; font-size:12px;"><% nvram_dump("ovpncli.ca.crt",""); %></textarea>
                                     </td>
                                 </tr>
                                 <tr id="row_client_crt">
                                     <td style="padding-bottom: 0px; border-top: 0 none;">
                                         <span class="caption-bold">client.crt (Client Certificate):</span>
-                                        <textarea rows="4" wrap="off" spellcheck="false" maxlength="8192" class="span12" name="ovpncli.client.crt" style="resize: vertical; font-family:'Courier New'; font-size:12px;"><% nvram_dump("ovpncli.client.crt",""); %></textarea>
+                                        <textarea rows="4" wrap="off" spellcheck="false" class="span12" name="ovpncli.client.crt" style="resize: vertical; font-family:'Courier New'; font-size:12px;"><% nvram_dump("ovpncli.client.crt",""); %></textarea>
                                     </td>
                                 </tr>
                                 <tr id="row_client_key">
                                     <td style="padding-bottom: 0px; border-top: 0 none;">
                                         <span class="caption-bold">client.key (Client Private Key) - secret:</span>
-                                        <textarea rows="4" wrap="off" spellcheck="false" maxlength="8192" class="span12" name="ovpncli.client.key" style="resize: vertical; font-family:'Courier New'; font-size:12px;"><% nvram_dump("ovpncli.client.key",""); %></textarea>
+                                        <textarea rows="4" wrap="off" spellcheck="false" class="span12" name="ovpncli.client.key" style="resize: vertical; font-family:'Courier New'; font-size:12px;"><% nvram_dump("ovpncli.client.key",""); %></textarea>
                                     </td>
                                 </tr>
                                 <tr id="row_ta_key">
                                     <td style="padding-bottom: 0px; border-top: 0 none;">
                                         <span class="caption-bold">ta.key/tc.key(ctc2.key) (TLS Auth/Crypt(Crypt-v2) Key) - secret:</span>
-                                        <textarea rows="4" wrap="off" spellcheck="false" maxlength="8192" class="span12" name="ovpncli.ta.key" style="resize: vertical; font-family:'Courier New'; font-size:12px;"><% nvram_dump("ovpncli.ta.key",""); %></textarea>
+                                        <textarea rows="4" wrap="off" spellcheck="false" class="span12" name="ovpncli.ta.key" style="resize: vertical; font-family:'Courier New'; font-size:12px;"><% nvram_dump("ovpncli.ta.key",""); %></textarea>
                                     </td>
                                 </tr>
                             </table>
@@ -1880,6 +2025,36 @@ function wg_conf_import() {
 
     <div id="footer"></div>
 </div>
+
+    <!-- Modal Text Editor -->
+    <div id="modal_text_editor" class="modal hide fade modal-editor" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+            <h4 id="modal_editor_title" style="margin: 0; display: inline-block;"><#CTL_modify#></h4>
+            <span class="badge badge-info" id="modal_editor_stats" style="margin-left: 15px; font-size: 11px;">0 lines | 0.0 KB</span>
+        </div>
+        <div class="modal-body">
+            <div style="margin-bottom: 8px;">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-small" onclick="modal_editor_dedup();" title="Удалить повторяющиеся строки"><i class="icon-filter"></i> Удалить дубли</button>
+                    <button type="button" class="btn btn-small" onclick="modal_editor_clean();" title="Удалить пустые строки и пробелы"><i class="icon-trash"></i> Удалить пустые</button>
+                    <button type="button" class="btn btn-small" onclick="modal_editor_sort();" title="Сортировать строки"><i class="icon-list"></i> Сортировка</button>
+                </div>
+                <div class="pull-right">
+                    <input type="file" id="modal_file_input" style="display:none;" onchange="modal_editor_load_file(this);" accept=".txt,.list,.conf">
+                    <button type="button" class="btn btn-small btn-inverse" onclick="document.getElementById('modal_file_input').click();" title="Загрузить из файла"><i class="icon-folder-open icon-white"></i> Загрузить файл</button>
+                    <button type="button" class="btn btn-small" onclick="modal_editor_copy();" title="Скопировать всё в буфер"><i class="icon-share"></i> <#CTL_copy#></button>
+                </div>
+            </div>
+            <textarea id="modal_editor_content" wrap="off" spellcheck="false" oninput="update_modal_editor_stats();" onkeyup="update_modal_editor_stats();"></textarea>
+        </div>
+        <div class="modal-footer">
+            <span id="modal_editor_msg" style="float: left; color: #468847; font-weight: bold; margin-top: 5px;"></span>
+            <button type="button" class="btn" data-dismiss="modal" aria-hidden="true"><#CTL_Cancel#></button>
+            <button type="button" class="btn btn-info" onclick="modal_editor_apply();"><i class="icon-ok icon-white"></i> <#CTL_onlysave#> в форму</button>
+            <button type="button" class="btn btn-primary" onclick="modal_editor_apply_and_save();"><i class="icon-check icon-white"></i> <#CTL_apply#></button>
+        </div>
+    </div>
 
 </body>
 </html>
