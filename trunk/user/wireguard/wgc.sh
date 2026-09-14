@@ -185,7 +185,7 @@ start_wg()
             done
         fi
     else
-        iplist=$(cat "$REMOTE_NETWORK_LIST" | grep -v "^#")
+        iplist=$(cat "$REMOTE_NETWORK_LIST" | grep -v "^#" | sort -u)
         for i in $iplist; do
             if [ "$IPBB" ]; then
                 [ "$i" != "${i#*:}" ] && continue
@@ -211,7 +211,7 @@ start_wg()
         done
     fi
 
-    iplist=$(cat "$EXCLUDE_NETWORK_LIST" | grep -v "^#")
+    iplist=$(cat "$EXCLUDE_NETWORK_LIST" | grep -v "^#" | sort -u)
     for i in $iplist; do
         if [ "$IPBB" ]; then
             case "$i" in
