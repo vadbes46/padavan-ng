@@ -579,9 +579,9 @@ if [ "$CONFIG_FIRMWARE_INCLUDE_USBIP" = "y" ] ; then
 fi
 #######################################################################
 echo --------------------------MAKE-DEP--------------------------------
-make dep
+make dep || exit 1
 echo --------------------------MAKE-ALL--------------------------------
-make
+make || exit 1
 
 if [ -d "$ROOTDIR/images" ]; then
 	if [ "$CONFIG_FIRMWARE_INCLUDE_SINGBOX" = "y" ]; then

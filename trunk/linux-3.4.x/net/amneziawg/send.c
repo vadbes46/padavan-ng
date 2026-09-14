@@ -224,6 +224,7 @@ static unsigned int calculate_skb_padding(struct sk_buff *skb)
 static bool encrypt_packet(u32 message_type, size_t junk_size, struct sk_buff *skb, struct noise_keypair *keypair,
 			   simd_context_t *simd_context)
 {
+	struct wg_peer *peer = keypair->entry.peer;
 	unsigned int padding_len, plaintext_len, trailer_len;
 	struct scatterlist sg[MAX_SKB_FRAGS + 8];
 	struct message_data *header;
