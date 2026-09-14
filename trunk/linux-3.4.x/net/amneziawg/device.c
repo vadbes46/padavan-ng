@@ -328,6 +328,11 @@ static void wg_setup(struct net_device *dev)
 		.start = MESSAGE_DATA,
 		.end = MESSAGE_DATA
 	};
+
+	u32_range_init(&wg->init_header, wg->headers[MSGIDX_HANDSHAKE_INIT].start, wg->headers[MSGIDX_HANDSHAKE_INIT].end);
+	u32_range_init(&wg->resp_header, wg->headers[MSGIDX_HANDSHAKE_RESPONSE].start, wg->headers[MSGIDX_HANDSHAKE_RESPONSE].end);
+	u32_range_init(&wg->cookie_header, wg->headers[MSGIDX_HANDSHAKE_COOKIE].start, wg->headers[MSGIDX_HANDSHAKE_COOKIE].end);
+	u32_range_init(&wg->transport_header, wg->headers[MSGIDX_TRANSPORT].start, wg->headers[MSGIDX_TRANSPORT].end);
 }
 
 static int wg_newlink(struct net *src_net, struct net_device *dev,

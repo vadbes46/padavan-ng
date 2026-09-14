@@ -74,7 +74,7 @@ static size_t prepare_awg_message(struct sk_buff *skb, struct wg_device *wg)
 
 	/* Check Handshake Initiation */
 	padding = wg->junk_size[MSGIDX_HANDSHAKE_INIT];
-	if (skb->len == padding + MESSAGE_INITIATION_SIZE) {
+	if (skb->len >= padding + MESSAGE_INITIATION_SIZE) {
 		hptr = skb_header_pointer(skb, padding, sizeof(tbuf), tbuf);
 		if (hptr && u32_range_contains(wg->init_header, le32_to_cpu(awg_decoded_type(hptr, hash)))) {
 			header_len = MESSAGE_INITIATION_SIZE;
@@ -84,7 +84,7 @@ static size_t prepare_awg_message(struct sk_buff *skb, struct wg_device *wg)
 
 	/* Check Handshake Response */
 	padding = wg->junk_size[MSGIDX_HANDSHAKE_RESPONSE];
-	if (skb->len == padding + MESSAGE_RESPONSE_SIZE) {
+	if (skb->len >= padding + MESSAGE_RESPONSE_SIZE) {
 		hptr = skb_header_pointer(skb, padding, sizeof(tbuf), tbuf);
 		if (hptr && u32_range_contains(wg->resp_header, le32_to_cpu(awg_decoded_type(hptr, hash)))) {
 			header_len = MESSAGE_RESPONSE_SIZE;
@@ -94,7 +94,7 @@ static size_t prepare_awg_message(struct sk_buff *skb, struct wg_device *wg)
 
 	/* Check Handshake Cookie */
 	padding = wg->junk_size[MSGIDX_HANDSHAKE_COOKIE];
-	if (skb->len == padding + MESSAGE_COOKIE_REPLY_SIZE) {
+	if (skb->len >= padding + MESSAGE_COOKIE_REPLY_SIZE) {
 		hptr = skb_header_pointer(skb, padding, sizeof(tbuf), tbuf);
 		if (hptr && u32_range_contains(wg->cookie_header, le32_to_cpu(awg_decoded_type(hptr, hash)))) {
 			header_len = MESSAGE_COOKIE_REPLY_SIZE;
@@ -117,6 +117,8 @@ static size_t prepare_awg_message(struct sk_buff *skb, struct wg_device *wg)
 	return 0;
 
 matched:
+	if (header_len != MESSAGE_TRANSPORT_SIZE && unlikely(pskb_trim(skb, padding + header_len)))
+		return 0;
 	skb_pull(skb, padding);
 	if (protected)
 		chacha20_crypt(&state, skb->data, skb->data, header_len);
