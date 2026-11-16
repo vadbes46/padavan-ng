@@ -605,6 +605,10 @@ if [ -d "$ROOTDIR/images" ]; then
 		fi
 	fi
 
+	if [ -x "$ROOTDIR/clean_git_churn.sh" ]; then
+		"$ROOTDIR/clean_git_churn.sh" || true
+	fi
+
 	if [ "$CONFIG_FIRMWARE_INCLUDE_SINGBOX" = "y" ] || [ "$CONFIG_FIRMWARE_INCLUDE_XRAY" = "y" ]; then
 		echo "================================================================================"
 		echo "                     VPN CLIENT DEPLOYMENT GUIDE                                "
