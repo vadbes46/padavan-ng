@@ -59,6 +59,45 @@ if [ -s "$TMP_LIST" ]; then
     tr '\n' '\0' < "$TMP_LIST" | xargs -0 -r git -C "$TOPDIR" restore --worktree -- 2>/dev/null || true
 fi
 
-# Keep autotools generated files newer than configure.ac/aclocal.m4 to prevent re-running automake on incremental builds
-find "$SCRIPT_DIR/libs" "$SCRIPT_DIR/user" "$SCRIPT_DIR/tools" -name "Makefile.in" -exec touch {} + 2>/dev/null || true
-find "$SCRIPT_DIR/libs" "$SCRIPT_DIR/user" "$SCRIPT_DIR/tools" -name "config.h.in" -exec touch {} + 2>/dev/null || true
+# Keep autotools timestamps strictly ordered across 4 tiers:
+# Tier 1: aclocal.m4 strictly newer than restored configure.ac / m4/*.m4
+sleep 1
+find "$SCRIPT_DIR/libs" "$SCRIPT_DIR/user" "$SCRIPT_DIR/tools" \
+    -name "aclocal.m4" -exec touch {} + 2>/dev/null || true
+
+# Tier 2: Templates/scripts strictly newer than aclocal.m4 / Makefile.am / configure.ac
+sleep 1
+find "$SCRIPT_DIR/libs" "$SCRIPT_DIR/user" "$SCRIPT_DIR/tools" \
+    \( -name "configure" -o -name "Makefile.in" -o -name "config.h.in" -o -name "defs.h.in" -o -name "curl_config.h.in" -o -name "POTFILES.in" \) \
+    -exec touch {} + 2>/dev/null || true
+
+# Tier 3: Configure state markers strictly newer than Tier 2 so config.status --recheck does not trigger
+sleep 1
+find "$SCRIPT_DIR/libs" "$SCRIPT_DIR/user" "$SCRIPT_DIR/tools" \
+    \( -name "config.status" -o -name "config_done" \) \
+    -exec touch {} + 2>/dev/null || true
+
+# Tier 4: Already-configured generated outputs strictly newer than Tier 1..3
+# so incremental builds neither regenerate Makefiles from restored templates nor recompile parted/e2fsprogs
+sleep 1
+find "$SCRIPT_DIR/libs" "$SCRIPT_DIR/user" "$SCRIPT_DIR/tools" \
+    -name "stamp-h*" -exec touch {} + 2>/dev/null || true
+
+find "$SCRIPT_DIR/libs" "$SCRIPT_DIR/user" "$SCRIPT_DIR/tools" -name "Makefile.in" 2>/dev/null \
+    | while IFS= read -r mf_in; do
+        mf_dir="$(dirname "$mf_in")"
+        [ -f "$mf_dir/Makefile" ] && touch "$mf_dir/Makefile"
+    done
+
+find "$SCRIPT_DIR/libs" "$SCRIPT_DIR/user" "$SCRIPT_DIR/tools" \
+    \( -name "config.h.in" -o -name "defs.h.in" -o -name "curl_config.h.in" -o -name "POTFILES.in" -o -name "MCONFIG.in" \) 2>/dev/null \
+    | while IFS= read -r ch_in; do
+        ch_dir="$(dirname "$ch_in")"
+        case "$(basename "$ch_in")" in
+            config.h.in) [ -f "$ch_dir/config.h" ] && touch "$ch_dir/config.h" ;;
+            defs.h.in) [ -f "$ch_dir/defs.h" ] && touch "$ch_dir/defs.h" ;;
+            curl_config.h.in) [ -f "$ch_dir/curl_config.h" ] && touch "$ch_dir/curl_config.h" ;;
+            POTFILES.in) [ -f "$ch_dir/POTFILES" ] && touch "$ch_dir/POTFILES" ;;
+            MCONFIG.in) [ -f "$ch_dir/MCONFIG" ] && touch "$ch_dir/MCONFIG" ;;
+        esac
+    done
