@@ -71,15 +71,21 @@ ifdef CONFIG_SMP
 OBJS += smp.o
 endif
 
+FWREV_STAMP := .fwrev
+$(shell cur='$(FIRMWARE_BUILDS_REV)'; old=$$(cat $(FWREV_STAMP) 2>/dev/null); [ "$$cur" = "$$old" ] || printf '%s' "$$cur" > $(FWREV_STAMP))
+
 all: $(OBJS) Makefile
 	$(CC) -o $(EXEC) $(OBJS) $(LDFLAGS)
 	$(STRIP) $(EXEC)
+
+common_ex.o: common_ex.c $(FWREV_STAMP)
+	$(CC) -c $< $(CFLAGS)
 
 c.o:
 	$(CC) -c $*.c $(CFLAGS)
 
 clean:
-	rm -f *.o rc
+	rm -f *.o rc $(FWREV_STAMP)
 
 romfs:
 	$(ROMFSINST) /sbin/$(EXEC)

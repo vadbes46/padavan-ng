@@ -364,6 +364,7 @@ user/openssh/openssh-*/sshd-session
 user/p910nd/p910nd
 user/pppoe/pppoe-discovery
 user/ralinkiappd/ralinkiappd
+user/rc/.fwrev
 user/rc/rc
 user/tcpdump/tcpdump
 user/tcpdump/tcpdump-*/tcpdump
