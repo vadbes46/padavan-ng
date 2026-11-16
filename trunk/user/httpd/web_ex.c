@@ -2080,12 +2080,34 @@ net_iface_list_hook(int eid, webs_t wp, int argc, char **argv)
 static int
 net_update_vpnc_wg_state_hook(int eid, webs_t wp, int argc, char **argv)
 {
-#if defined(APP_WIREGUARD) || defined(APP_AMNEZIAWG)
-	const char *wg_bin = NULL;
+#if defined(APP_WIREGUARD) || defined(APP_AMNEZIAWG) || defined(APP_SINGBOX) || defined(APP_XRAY)
 	int vpnc_type = nvram_get_int("vpnc_type");
 
 	if (nvram_get_int("vpnc_enable") == 0)
 		return 0;
+
+#if defined(APP_SINGBOX)
+	if (vpnc_type == 5) {
+		int vpnc_state_t = nvram_safe_get_int("vpnc_state_t", 0, 0, 2);
+		int sb_state = pids("sing-box") ? 1 : 0;
+		if (vpnc_state_t != sb_state)
+			nvram_set_int_temp("vpnc_state_t", sb_state);
+		return 0;
+	}
+#endif
+#if defined(APP_XRAY)
+	if (vpnc_type == 6) {
+		int vpnc_state_t = nvram_safe_get_int("vpnc_state_t", 0, 0, 2);
+		int xr_state = pids("xray") ? 1 : 0;
+		if (vpnc_state_t != xr_state)
+			nvram_set_int_temp("vpnc_state_t", xr_state);
+		return 0;
+	}
+#endif
+
+#if defined(APP_WIREGUARD) || defined(APP_AMNEZIAWG)
+	{
+	const char *wg_bin = NULL;
 	if (vpnc_type == 3) {
 #if defined(APP_WIREGUARD)
 		wg_bin = "/usr/sbin/wg";
@@ -2132,6 +2154,8 @@ net_update_vpnc_wg_state_hook(int eid, webs_t wp, int argc, char **argv)
 
 	if (vpnc_state_t != wg_state)
 		nvram_set_int_temp("vpnc_state_t", wg_state);
+	}
+#endif
 #endif
 	return 0;
 }

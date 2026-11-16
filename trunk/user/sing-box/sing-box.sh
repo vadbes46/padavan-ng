@@ -23,6 +23,13 @@ log() {
     logger -t "sing-box" "$@"
 }
 
+# Portable command lookup: BusyBox ash may be built without CONFIG_ASH_CMDCMD
+has_cmd() {
+    local c="$1"
+    which "$c" >/dev/null 2>&1 && return 0
+    [ -x "/sbin/$c" ] || [ -x "/usr/sbin/$c" ] || [ -x "/bin/$c" ] || [ -x "/usr/bin/$c" ] || [ -x "/opt/sbin/$c" ] || [ -x "/opt/bin/$c" ]
+}
+
 find_binary() {
     # 1. In firmware
     if [ -f "/usr/bin/sing-box" -a -x "/usr/bin/sing-box" ]; then
@@ -159,7 +166,7 @@ routing_start() {
     local vpnc_en="0" vpnc_tp="" routing="" conf=""
     local ipbb=$(ip 2>&1 | grep -i busybox)
 
-    if command -v nvram >/dev/null 2>&1; then
+    if has_cmd nvram; then
         vpnc_en=$(nvram get vpnc_enable 2>/dev/null)
         vpnc_tp=$(nvram get vpnc_type 2>/dev/null)
         routing=$(nvram get vpnc_sb_routing 2>/dev/null)
@@ -195,7 +202,7 @@ routing_start() {
         done
     else
         local wan0_gw="" wan0_if=""
-        if command -v nvram >/dev/null 2>&1; then
+        if has_cmd nvram; then
             wan0_gw=$(nvram get wan0_gateway 2>/dev/null)
             wan0_if=$(nvram get wan0_ifname 2>/dev/null)
         fi
@@ -204,7 +211,7 @@ routing_start() {
 
     # Exclude configured LAN source CIDRs from VPN
     if [ -s "$EXCLUDE_NETWORK_LIST" ]; then
-        for cidr in $(awk '{sub(/\r$/,""); sub(/[[:space:]]*#.*/,""); gsub(/^[[:space:]]+|[[:space:]]+$/,""); if($0!="") print $0}' "$EXCLUDE_NETWORK_LIST" | sort -u); do
+        for cidr in $(awk '{sub(/\r$/,""); sub(/[[:space:]]*#.*/,""); gsub(/^[[:space:]]+|[[:space:]]+$/,""); if($0 ~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(\/[0-9]+)?$/ || $0 ~ /^[0-9a-fA-F:]+(\/[0-9]+)?$/) print $0}' "$EXCLUDE_NETWORK_LIST" | sort -u); do
             if [ "$ipbb" ]; then
                 case "$cidr" in
                     */0|*:*) continue ;;
@@ -219,7 +226,7 @@ routing_start() {
     fi
 
     # Ensure WAN IPs and proxy server endpoints always use main table
-    if command -v nvram >/dev/null 2>&1; then
+    if has_cmd nvram; then
         for var in wan_ipaddr wan0_ipaddr; do
             local ip_val=$(nvram get "$var" 2>/dev/null)
             [ -n "$ip_val" -a "$ip_val" != "0.0.0.0" ] || continue
@@ -253,7 +260,7 @@ routing_start() {
     else
         if [ -s "$REMOTE_NETWORK_LIST" ]; then
             if [ "$ipbb" ]; then
-                for cidr in $(awk '{sub(/\r$/,""); sub(/[[:space:]]*#.*/,""); gsub(/^[[:space:]]+|[[:space:]]+$/,""); if($0!="" && $0 !~ /:/) print $0}' "$REMOTE_NETWORK_LIST" | sort -u); do
+                for cidr in $(awk '{sub(/\r$/,""); sub(/[[:space:]]*#.*/,""); gsub(/^[[:space:]]+|[[:space:]]+$/,""); if($0 ~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(\/[0-9]+)?$/ && $0 !~ /\/0$/) print $0}' "$REMOTE_NETWORK_LIST" | sort -u); do
                     ip route replace "$cidr" dev "$IF_NAME" 2>/dev/null || ip route add "$cidr" dev "$IF_NAME" 2>/dev/null || true
                 done
             else
@@ -262,7 +269,7 @@ routing_start() {
                         sub(/\r$/, "")
                         sub(/[[:space:]]*#.*/, "")
                         gsub(/^[[:space:]]+|[[:space:]]+$/, "")
-                        if ($0 == "" || $0 ~ /:/) next
+                        if ($0 == "" || $0 ~ /:/ || $0 ~ /\/0$/) next
                         if ($0 ~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(\/[0-9]+)?$/)
                             print "route replace " $0 " dev " dev " table " tbl
                     }
@@ -340,7 +347,7 @@ stop() {
     killall -9 -q sing-box 2>/dev/null
 
     # Clean up tun0 only if sing-box actually created it (avoid touching OpenVPN tun0)
-    if [ $was_running -eq 1 ] || (command -v nvram >/dev/null 2>&1 && [ "$(nvram get vpnc_type 2>/dev/null)" = "5" ]); then
+    if [ $was_running -eq 1 ] || (has_cmd nvram && [ "$(nvram get vpnc_type 2>/dev/null)" = "5" ]); then
         ip link delete "$IF_NAME" 2>/dev/null
     fi
 

@@ -45,6 +45,7 @@ fw_enable_x = '<% nvram_get_x("", "fw_enable_x"); %>';
 vpnc_state_last = '<% nvram_get_x("", "vpnc_state_t"); %>';
 ip6_service = '<% nvram_get_x("", "ip6_service"); %>';
 vpnc_type = '<% nvram_get_x("", "vpnc_type"); %>';
+vpnc_type_orig = '<% nvram_get_x("", "vpnc_type"); %>';
 
 function initial(){
 	show_banner(0);
@@ -84,20 +85,33 @@ function initial(){
 	load_body();
 }
 
+function set_vpnc_badge(el_id, vpnc_state, show){
+	showhide_div(el_id, show);
+	if (!show) return;
+	if (vpnc_state == 2) {
+		$(el_id).innerHTML = '<#Connecting#>';
+		$(el_id).setAttribute('class', 'label label-warning');
+	} else if (vpnc_state == 1) {
+		$(el_id).innerHTML = '<#Connected#>';
+		$(el_id).setAttribute('class', 'label label-success');
+	}
+}
+
 function update_vpnc_status(vpnc_state){
 	this.vpnc_state_last = vpnc_state;
-	if (vpnc_type == 3 || vpnc_type == 4 || vpnc_type == 5 || vpnc_type == 6) {
-		showhide_div('col_vpnc_wg_state', (vpnc_state != 0 && document.form.vpnc_enable[0].checked) ? 1 : 0);
-		if (vpnc_state == 2) {
-			$("col_vpnc_wg_state").innerHTML = '<#Connecting#>';
-			$('col_vpnc_wg_state').setAttribute('class', 'label label-warning');
-		} else
-		if (vpnc_state == 1) {
-			$("col_vpnc_wg_state").innerHTML = '<#Connected#>';
-			$('col_vpnc_wg_state').setAttribute('class', 'label label-success');
-		}
+	var active = (vpnc_state != 0 && document.form.vpnc_enable[0].checked && (String(vpnc_type) === String(vpnc_type_orig))) ? 1 : 0;
+	if (vpnc_type == 3 || vpnc_type == 4) {
+		showhide_div('col_vpnc_state', 0);
+		showhide_div('col_vpnc_proxy_state', 0);
+		set_vpnc_badge('col_vpnc_wg_state', vpnc_state, active);
+	} else if (vpnc_type == 5 || vpnc_type == 6) {
+		showhide_div('col_vpnc_state', 0);
+		showhide_div('col_vpnc_wg_state', 0);
+		set_vpnc_badge('col_vpnc_proxy_state', vpnc_state, active);
 	} else {
-		showhide_div('col_vpnc_state', (vpnc_state != 0 && document.form.vpnc_enable[0].checked) ? 1 : 0);
+		showhide_div('col_vpnc_wg_state', 0);
+		showhide_div('col_vpnc_proxy_state', 0);
+		showhide_div('col_vpnc_state', active);
 	}
 }
 
@@ -373,7 +387,10 @@ function change_vpnc_type() {
 	showhide_div('row_vpnc_mtu', !is_ov && !is_wg_family && !is_proxy_proto);
 	showhide_div('row_vpnc_mru', !is_ov && !is_wg_family && !is_proxy_proto);
 	showhide_div('tbl_vpnc_route', !is_ov && !is_wg_family && !is_proxy_proto);
-	showhide_div('tbl_vpnc_server', !is_proxy_proto);
+	showhide_div('tbl_vpnc_server', 1);
+	showhide_div('row_vpnc_sfw', !is_proxy_proto);
+	showhide_div('vpnc_get_dns', !is_proxy_proto);
+	showhide_div('row_vpnc_dgw', !is_proxy_proto);
 
 	showhide_div('row_vpnc_ov_import', is_ov);
 	showhide_div('row_vpnc_ov_port', is_ov);
@@ -1444,6 +1461,7 @@ function modal_editor_load_file(input) {
                                             <option value="6" <% nvram_match_x("", "vpnc_type", "6","selected"); %>><#VPNC_Type_Xray#></option>
                                         </select>
                                         <span id="certs_hint" style="display:none" class="label label-warning"><#OVPN_Hint#></span>
+                                        &nbsp;<span id="col_vpnc_proxy_state" style="display:none" class="label label-success"><#Connected#></span>
                                     </td>
                                 </tr>
                                 <tr id="row_vpnc_ov_import" style="display:none">
@@ -1741,9 +1759,9 @@ function modal_editor_load_file(input) {
                                                 <th><#VPNC_Proxy_Routing#></th>
                                                 <td>
                                                     <select name="vpnc_xray_routing" class="input" style="width: 320px;">
-                                                        <option value="0" <% nvram_match_x("", "vpnc_xray_routing", "0","selected"); %>><#VPNC_Proxy_Routing_ProxyOnly#></option>
                                                         <option value="1" <% nvram_match_x("", "vpnc_xray_routing", "1","selected"); %>><#VPNC_Proxy_Routing_Unblock#></option>
                                                         <option value="2" <% nvram_match_x("", "vpnc_xray_routing", "2","selected"); %>><#VPNC_Proxy_Routing_Full_TCP#></option>
+                                                        <option value="0" <% nvram_match_x("", "vpnc_xray_routing", "0","selected"); %>><#VPNC_Proxy_Routing_ProxyOnly#></option>
                                                     </select>
                                                 </td>
                                             </tr>
@@ -1944,7 +1962,7 @@ function modal_editor_load_file(input) {
                                 <tr>
                                     <th colspan="2" style="background-color: #E3E3E3;"><#VPNC_VPNS#></th>
                                 </tr>
-                                <tr>
+                                <tr id="row_vpnc_sfw">
                                     <th width="50%"><#VPNC_SFW#></th>
                                     <td>
                                         <select name="vpnc_sfw" class="input" style="width: 320px;">
@@ -1965,7 +1983,7 @@ function modal_editor_load_file(input) {
                                         </select>
                                     </td>
                                 </tr>
-                                <tr>
+                                <tr id="row_vpnc_dgw">
                                     <th><#VPNC_DGW#></th>
                                     <td>
                                         <select name="vpnc_dgw" class="input">

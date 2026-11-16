@@ -199,6 +199,12 @@ start_awg()
 	fi
 
 	msg_unable() ( log "warning: unable to add route for $1 from $2 list" )
+	extract_cidrs() {
+		[ -s "$1" ] && awk '{
+			sub(/\r$/, ""); sub(/[[:space:]]*#.*/, ""); gsub(/^[[:space:]]+|[[:space:]]+$/, "")
+			if ($0 ~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(\/[0-9]+)?$/ || $0 ~ /^[0-9a-fA-F:]+(\/[0-9]+)?$/) print
+		}' "$1" | sort -u
+	}
 
 	$AWG set $IF_NAME fwmark $FWMARK
 
@@ -223,7 +229,7 @@ start_awg()
 			done
 		fi
 	else
-		iplist=$(cat "$REMOTE_NETWORK_LIST" | grep -v "^#" | sort -u)
+		iplist=$(extract_cidrs "$REMOTE_NETWORK_LIST")
 		for i in $iplist; do
 			if [ "$IPBB" ]; then
 				[ "$i" != "${i#*:}" ] && continue
@@ -249,7 +255,7 @@ start_awg()
 		done
 	fi
 
-	iplist=$(cat "$EXCLUDE_NETWORK_LIST" | grep -v "^#" | sort -u)
+	iplist=$(extract_cidrs "$EXCLUDE_NETWORK_LIST")
 	for i in $iplist; do
 		if [ "$IPBB" ]; then
 			case "$i" in

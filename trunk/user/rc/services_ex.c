@@ -289,6 +289,83 @@ is_dhcpd_enabled(int is_ap_mode)
 		return nvram_match("lan_dhcpd_x", "1") && nvram_invmatch("lan_proto_x", "1");
 }
 
+#if defined(APP_XRAY)
+#define DNSMASQ_XRAY_CONF "/tmp/dnsmasq.xray.conf"
+#define VPNC_REMOTE_LIST  "/etc/storage/vpnc_remote_network.list"
+
+/* Extract domain entries from vpnc_remote_network.list into dnsmasq ipset rules */
+int
+write_xray_dnsmasq_ipset(void)
+{
+	FILE *in, *out;
+	char line[512];
+	int count = 0;
+
+	unlink(DNSMASQ_XRAY_CONF);
+
+	if (nvram_get_int("vpnc_enable") != 1 || nvram_get_int("vpnc_type") != 6)
+		return 0;
+
+	if (*nvram_safe_get("vpnc_xray_routing") && nvram_get_int("vpnc_xray_routing") != 1)
+		return 0;
+
+	in = fopen(VPNC_REMOTE_LIST, "r");
+	if (!in)
+		return 0;
+
+	out = NULL;
+	while (fgets(line, sizeof(line), in)) {
+		char *s = line;
+		char *p, *c;
+		int has_alpha = 0, has_dot = 0, valid = 1;
+
+		c = strchr(s, '#');
+		if (c)
+			*c = '\0';
+		while (*s == ' ' || *s == '\t')
+			s++;
+		p = s + strlen(s);
+		while (p > s && (p[-1] == ' ' || p[-1] == '\t' || p[-1] == '\r' || p[-1] == '\n'))
+			*--p = '\0';
+
+		if (s[0] == '*' && s[1] == '.')
+			s += 2;
+		else if (s[0] == '.')
+			s++;
+
+		if (!*s)
+			continue;
+
+		for (p = s; *p; p++) {
+			unsigned char ch = (unsigned char)*p;
+			if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z'))
+				has_alpha = 1;
+			else if (ch == '.')
+				has_dot = 1;
+			else if (!((ch >= '0' && ch <= '9') || ch == '-' || ch == '_')) {
+				valid = 0;
+				break;
+			}
+		}
+		if (!valid || !has_alpha || !has_dot || s[0] == '.' || p[-1] == '.')
+			continue;
+
+		if (!out) {
+			out = fopen(DNSMASQ_XRAY_CONF, "w");
+			if (!out)
+				break;
+		}
+		fprintf(out, "ipset=/%s/xray_domains\n", s);
+		count++;
+	}
+
+	if (out)
+		fclose(out);
+	fclose(in);
+	return count;
+}
+#endif
+
 int
 start_dns_dhcpd(int is_ap_mode)
 {
@@ -545,6 +622,10 @@ start_dns_dhcpd(int is_ap_mode)
 #endif
 
 	fprintf(fp, "conf-file=%s/dnsmasq.conf\n", storage_dir);
+#if defined(APP_XRAY)
+	if (!is_ap_mode && write_xray_dnsmasq_ipset() > 0)
+		fprintf(fp, "conf-file=%s\n", DNSMASQ_XRAY_CONF);
+#endif
 	fclose(fp);
 
 	if (is_dns_used)

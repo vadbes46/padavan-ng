@@ -172,6 +172,13 @@ start_wg()
     # if iproute2 is not available - use $TABLE for exclude network
     [ "$IPBB" -a "$WAN0_GW" -a "$WAN0_IFNAME" ] && ip route add default via $WAN0_GW dev $WAN0_IFNAME table $TABLE
 
+    extract_cidrs() {
+        [ -s "$1" ] && awk '{
+            sub(/\r$/, ""); sub(/[[:space:]]*#.*/, ""); gsub(/^[[:space:]]+|[[:space:]]+$/, "")
+            if ($0 ~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(\/[0-9]+)?$/ || $0 ~ /^[0-9a-fA-F:]+(\/[0-9]+)?$/) print
+        }' "$1" | sort -u
+    }
+
     if [ "$(nvram get vpnc_dgw)" == "1" ]; then
         if [ "$IPBB" ]; then
             ip route add 0/1 dev $IF_NAME
@@ -185,7 +192,7 @@ start_wg()
             done
         fi
     else
-        iplist=$(cat "$REMOTE_NETWORK_LIST" | grep -v "^#" | sort -u)
+        iplist=$(extract_cidrs "$REMOTE_NETWORK_LIST")
         for i in $iplist; do
             if [ "$IPBB" ]; then
                 [ "$i" != "${i#*:}" ] && continue
@@ -211,7 +218,7 @@ start_wg()
         done
     fi
 
-    iplist=$(cat "$EXCLUDE_NETWORK_LIST" | grep -v "^#" | sort -u)
+    iplist=$(extract_cidrs "$EXCLUDE_NETWORK_LIST")
     for i in $iplist; do
         if [ "$IPBB" ]; then
             case "$i" in

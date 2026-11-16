@@ -444,6 +444,7 @@ void restart_singbox_client(void);
 int start_xray_client(void);
 void stop_xray_client(void);
 void restart_xray_client(void);
+int write_xray_dnsmasq_ipset(void);
 
 /* net_wifi.c */
 void mlme_state_wl(int is_on);

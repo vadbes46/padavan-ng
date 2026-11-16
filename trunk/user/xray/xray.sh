@@ -17,6 +17,13 @@ log() {
     logger -t "xray" "$@"
 }
 
+# Portable command lookup: BusyBox ash may be built without CONFIG_ASH_CMDCMD
+has_cmd() {
+    local c="$1"
+    which "$c" >/dev/null 2>&1 && return 0
+    [ -x "/sbin/$c" ] || [ -x "/usr/sbin/$c" ] || [ -x "/bin/$c" ] || [ -x "/usr/bin/$c" ] || [ -x "/opt/sbin/$c" ] || [ -x "/opt/bin/$c" ]
+}
+
 find_binary() {
     # 1. In firmware
     if [ -f "/usr/bin/xray" -a -x "/usr/bin/xray" ]; then
@@ -157,7 +164,7 @@ load_ipset_cidrs() {
             sub(/\r$/, "")
             sub(/[[:space:]]*#.*/, "")
             gsub(/^[[:space:]]+|[[:space:]]+$/, "")
-            if ($0 == "" || $0 ~ /:/) next
+            if ($0 == "" || $0 ~ /:/ || $0 ~ /\/0$/) next
             if ($0 ~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(\/[0-9]+)?$/)
                 print "add " sname " " $0
         }
@@ -176,7 +183,7 @@ is_running() {
 
 firewall_stop() {
     local lan_if=""
-    command -v nvram >/dev/null 2>&1 && lan_if=$(nvram get lan_ifname 2>/dev/null)
+    has_cmd nvram && lan_if=$(nvram get lan_ifname 2>/dev/null)
     [ -n "$lan_if" ] || lan_if="br0"
 
     while iptables -t nat -D PREROUTING -i "$lan_if" -p tcp -j XRAY_REDIR 2>/dev/null; do true; done
@@ -192,7 +199,7 @@ firewall_stop() {
 firewall_start() {
     local vpnc_en="0" vpnc_tp="" routing="" lan_if="" redir_port="" conf=""
 
-    if command -v nvram >/dev/null 2>&1; then
+    if has_cmd nvram; then
         vpnc_en=$(nvram get vpnc_enable 2>/dev/null)
         vpnc_tp=$(nvram get vpnc_type 2>/dev/null)
         routing=$(nvram get vpnc_xray_routing 2>/dev/null)
@@ -214,7 +221,7 @@ firewall_start() {
         return 0
     fi
 
-    if ! command -v ipset >/dev/null 2>&1; then
+    if ! has_cmd ipset; then
         log "ERROR: ipset utility not found; cannot enable transparent Xray routing."
         return 1
     fi
@@ -238,7 +245,7 @@ firewall_start() {
         ipset add xray_bypass "$cidr" -exist 2>/dev/null
     done
 
-    if command -v nvram >/dev/null 2>&1; then
+    if has_cmd nvram; then
         for var in wan_ipaddr wan0_ipaddr wanx_ipaddr lan_ipaddr; do
             local ip_val=$(nvram get "$var" 2>/dev/null)
             case "$ip_val" in
@@ -263,23 +270,23 @@ firewall_start() {
     iptables -t nat -A XRAY_REDIR -m set --match-set xray_exclude src -j RETURN
 
     if [ "$routing" = "2" ]; then
-        iptables -t nat -A XRAY_REDIR -p tcp -j REDIRECT --to-ports "$redir_port"
+        iptables -t nat -A XRAY_REDIR -p tcp -j REDIRECT --to-ports "$redir_port" || return 1
         log "Transparent XRAY_REDIR enabled on $lan_if -> :$redir_port (mode: Full LAN TCP)."
     else
         load_ipset_cidrs xray_remote "$REMOTE_NETWORK_LIST"
-        iptables -t nat -A XRAY_REDIR -p tcp -m set --match-set xray_remote dst -j REDIRECT --to-ports "$redir_port"
-        iptables -t nat -A XRAY_REDIR -p tcp -m set --match-set xray_domains dst -j REDIRECT --to-ports "$redir_port"
+        iptables -t nat -A XRAY_REDIR -p tcp -m set --match-set xray_remote dst -j REDIRECT --to-ports "$redir_port" || return 1
+        iptables -t nat -A XRAY_REDIR -p tcp -m set --match-set xray_domains dst -j REDIRECT --to-ports "$redir_port" || return 1
         iptables -t nat -A XRAY_REDIR -p tcp -m set --match-set xbox_vpn dst -j REDIRECT --to-ports "$redir_port" 2>/dev/null || true
         log "Transparent XRAY_REDIR enabled on $lan_if -> :$redir_port (mode: Unblock lists/ipsets)."
     fi
 
-    iptables -t nat -I PREROUTING -i "$lan_if" -p tcp -j XRAY_REDIR
+    iptables -t nat -I PREROUTING -i "$lan_if" -p tcp -j XRAY_REDIR || return 1
 }
 
 start() {
     if is_running; then
         log "xray is already running (PID: $(cat "$PID_FILE" 2>/dev/null || pidof xray))"
-        firewall_start
+        firewall_start || return 1
         return 0
     fi
 
@@ -311,7 +318,7 @@ start() {
     sleep 1
     if kill -0 "$pid" 2>/dev/null; then
         log "xray started successfully (PID: $pid)"
-        firewall_start
+        firewall_start || return 1
         return 0
     else
         log "ERROR: xray failed to start. Check $LOG_FILE for details:"
