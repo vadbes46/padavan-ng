@@ -651,8 +651,9 @@ if [ -d "$ROOTDIR/images" ]; then
 		if [ -t 0 ] && [ -r /dev/tty ] && [ -w /dev/tty ]; then
 			printf "Copy built .trx and xray/sing-box folders to %s now? [y/N]: " "$SOFT_ARCHIVE_DIR" > /dev/tty
 			read -r COPY_ANS < /dev/tty
-			case "$COPY_ANS" in
-				y|Y|yes|YES|д|Д|да|ДА)
+			COPY_ANS_CLEAN="$(printf '%s' "$COPY_ANS" | tr -d '[:space:]')"
+			case "$COPY_ANS_CLEAN" in
+				y|Y|yes|Yes|YES|у|У|д|Д|да|Да|ДА)
 					mkdir -p "$SOFT_ARCHIVE_DIR/old"
 					for old_trx in "$SOFT_ARCHIVE_DIR/${CONFIG_FIRMWARE_PRODUCT_ID}_"*.trx; do
 						[ -f "$old_trx" ] && mv -f "$old_trx" "$SOFT_ARCHIVE_DIR/old/"
@@ -668,8 +669,11 @@ if [ -d "$ROOTDIR/images" ]; then
 					fi
 					echo "Copied firmware and VPN package folders to $SOFT_ARCHIVE_DIR/"
 					;;
-				*)
+				""|n|N|no|No|NO|н|Н|нет|Нет|НЕТ)
 					echo "Skipped copying to $SOFT_ARCHIVE_DIR/."
+					;;
+				*)
+					echo "Skipped copying to $SOFT_ARCHIVE_DIR/ (unrecognized input: '$COPY_ANS_CLEAN')."
 					;;
 			esac
 		fi

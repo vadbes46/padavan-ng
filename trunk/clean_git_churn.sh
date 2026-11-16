@@ -42,9 +42,13 @@ git -C "$TOPDIR" diff --name-only -z HEAD -- \
         $0 == "trunk/user/shared/board.mk" ||
         $0 == "trunk/user/shared/include/ralink_board.h" ||
         $0 ~ /^trunk\/(libs|tools|user)\/.*\/(Makefile\.in|aclocal\.m4|configure|configure~|config\.h\.in|INSTALL|zconf\.h|liblua\.so.*|POTFILES\.in|version\.xml)$/ ||
-        $0 ~ /^trunk\/(libs|tools|user)\/.*\/config\/(compile|depcomp|ltmain\.sh|missing|config\.guess|config\.sub)$/ ||
+        $0 ~ /^trunk\/(libs|tools|user)\/.*\/(ar-lib|compile|config\.guess|config\.sub|depcomp|install-sh|ltmain\.sh|mdate-sh|missing|py-compile|test-driver|texinfo\.tex)$/ ||
         $0 ~ /^trunk\/(libs|tools|user)\/.*\/m4\/.*\.m4$/ ||
-        $0 ~ /^trunk\/(libs|tools|user)\/.*\/docs\/Makefile\.in$/ {
+        $0 ~ /^trunk\/(libs|tools|user)\/.*\/docs\/Makefile\.in$/ ||
+        $0 ~ /^trunk\/libs\/libconfuse\/.*\/(doc\/Doxyfile|libconfuse\.spec)$/ ||
+        $0 ~ /^trunk\/libs\/libcurl\/.*\/lib\/curl_config\.h\.in$/ ||
+        $0 ~ /^trunk\/libs\/libnetfilter_queue\/.*\/include\/linux\/(netfilter\/)?Makefile$/ ||
+        $0 ~ /^trunk\/libs\/libnl\/.*\/(include\/netlink\/version\.h|lib\/defs\.h\.in~?)$/ {
             print
         }
     ' > "$TMP_LIST"
