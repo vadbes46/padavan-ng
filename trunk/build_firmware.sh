@@ -609,17 +609,20 @@ if [ -d "$ROOTDIR/images" ]; then
 		echo "================================================================================"
 		echo "                     VPN CLIENT DEPLOYMENT GUIDE                                "
 		echo "================================================================================"
-		echo "Firmware image was built into: images/ (*.trx)"
+		echo "Built firmware image(s) in images/:"
+		for f in "$ROOTDIR"/images/*.trx "$ROOTDIR"/images/*.bin; do
+			[ -f "$f" ] && echo "  - $(basename "$f")"
+		done
 		echo ""
-		echo "To use Sing-box / Xray on your router:"
-		echo "1. Flash the router with the generated *.trx image."
+		echo "To update your router:"
+		echo "1. Flash the generated firmware (*.trx) via Router Web UI."
 		echo ""
-		echo "2. Copy the ready folder to the router:"
+		echo "2. Copy updated VPN client folder(s) (contains updated binary & scripts):"
 		echo "   * FOR ROUTERS WITH USB (SmartBox SPI, etc.):"
-		echo "     Copy folder(s) to the root of a USB flash drive (FAT32, ext4, NTFS):"
+		echo "     Copy folder(s) to the root of the router's USB flash drive (e.g. /media/<USB>/):"
 		[ "$CONFIG_FIRMWARE_INCLUDE_SINGBOX" = "y" ] && echo "       cp -r images/sing-box /media/<YOUR_USB_DRIVE>/"
 		[ "$CONFIG_FIRMWARE_INCLUDE_XRAY" = "y" ]    && echo "       cp -r images/xray     /media/<YOUR_USB_DRIVE>/"
-		echo "     Insert the USB drive into the router. It will be detected automatically!"
+		echo "     Or via SCP onto mounted USB drive (note: keep /etc/storage/xray_config.json from Web UI)."
 		echo ""
 		echo "   * FOR ROUTERS WITH NAND (Xiaomi RM-AC2100, SmartBox NAND):"
 		echo "     Copy directly to the router's permanent UBIFS storage via SCP/SSH:"
@@ -629,6 +632,43 @@ if [ -d "$ROOTDIR/images" ]; then
 		echo "3. Open Web UI -> VPN Client -> Sing-box or Xray-core tab."
 		echo "   Status will turn green: 'Detected on storage (/media)'."
 		echo "================================================================================"
+	fi
+
+	SOFT_ARCHIVE_DIR="/_mnt/Yandex.Disk/_soft/smartbox"
+	if [ -d "$SOFT_ARCHIVE_DIR" ] && ls "$ROOTDIR"/images/${CONFIG_FIRMWARE_PRODUCT_ID}*.trx >/dev/null 2>&1; then
+		echo ""
+		echo "[Archive Notice] What should be copied to $SOFT_ARCHIVE_DIR:"
+		for f in "$ROOTDIR"/images/${CONFIG_FIRMWARE_PRODUCT_ID}*.trx; do
+			[ -f "$f" ] && echo "  - images/$(basename "$f") -> $SOFT_ARCHIVE_DIR/ (move old ${CONFIG_FIRMWARE_PRODUCT_ID}_*.trx -> old/)"
+		done
+		[ "$CONFIG_FIRMWARE_INCLUDE_XRAY" = "y" ] && [ -d "$ROOTDIR/images/xray" ] && echo "  - images/xray/ -> $SOFT_ARCHIVE_DIR/xray/"
+		[ "$CONFIG_FIRMWARE_INCLUDE_SINGBOX" = "y" ] && [ -d "$ROOTDIR/images/sing-box" ] && echo "  - images/sing-box/ -> $SOFT_ARCHIVE_DIR/sing-box/"
+
+		if [ -t 0 ] && [ -r /dev/tty ] && [ -w /dev/tty ]; then
+			printf "Copy built .trx and xray/sing-box folders to %s now? [y/N]: " "$SOFT_ARCHIVE_DIR" > /dev/tty
+			read -r COPY_ANS < /dev/tty
+			case "$COPY_ANS" in
+				y|Y|yes|YES|д|Д|да|ДА)
+					mkdir -p "$SOFT_ARCHIVE_DIR/old"
+					for old_trx in "$SOFT_ARCHIVE_DIR/${CONFIG_FIRMWARE_PRODUCT_ID}_"*.trx; do
+						[ -f "$old_trx" ] && mv -f "$old_trx" "$SOFT_ARCHIVE_DIR/old/"
+					done
+					cp -f "$ROOTDIR"/images/${CONFIG_FIRMWARE_PRODUCT_ID}*.trx "$SOFT_ARCHIVE_DIR/"
+					if [ "$CONFIG_FIRMWARE_INCLUDE_XRAY" = "y" ] && [ -d "$ROOTDIR/images/xray" ]; then
+						mkdir -p "$SOFT_ARCHIVE_DIR/xray"
+						cp -af "$ROOTDIR/images/xray/." "$SOFT_ARCHIVE_DIR/xray/"
+					fi
+					if [ "$CONFIG_FIRMWARE_INCLUDE_SINGBOX" = "y" ] && [ -d "$ROOTDIR/images/sing-box" ]; then
+						mkdir -p "$SOFT_ARCHIVE_DIR/sing-box"
+						cp -af "$ROOTDIR/images/sing-box/." "$SOFT_ARCHIVE_DIR/sing-box/"
+					fi
+					echo "Copied firmware and VPN package folders to $SOFT_ARCHIVE_DIR/"
+					;;
+				*)
+					echo "Skipped copying to $SOFT_ARCHIVE_DIR/."
+					;;
+			esac
+		fi
 	fi
 fi
 
