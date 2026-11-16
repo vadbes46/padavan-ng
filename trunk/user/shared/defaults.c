@@ -870,9 +870,9 @@ struct nvram_pair router_defaults[] = {
 	{ "vpnc_awg_i1", "" },
 	{ "vpnc_awg_hpk", "" },
 	{ "vpnc_awg_cpa", "" },
-	{ "vpnc_sb_routing", "0" },
-	{ "vpnc_xray_routing", "0" },
 #endif
+	{ "vpnc_sb_routing", "0" },
+	{ "vpnc_xray_routing", "1" },
 	{ 0, 0 }
 };
 

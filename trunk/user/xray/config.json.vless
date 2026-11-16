@@ -63,12 +63,22 @@
         "security": "tls",
         "tlsSettings": {
           "serverName": "your.domain.com",
-          "fingerprint": "firefox"
+          "fingerprint": "chrome",
+          "alpn": [
+            "h2"
+          ]
         },
         "xhttpSettings": {
           "path": "/ray-xhttp",
           "host": "your.domain.com",
-          "mode": "auto"
+          "mode": "auto",
+          "xPaddingBytes": "100-1000",
+          "xmux": {
+            "maxConnections": "2-4",
+            "cMaxReuseTimes": "64-128",
+            "hMaxRequestTimes": "800-1200",
+            "hMaxReusableSecs": "1800-3000"
+          }
         }
       }
     },
@@ -87,7 +97,15 @@
       {
         "type": "field",
         "ip": [
-          "geoip:private"
+          "10.0.0.0/8",
+          "100.64.0.0/10",
+          "127.0.0.0/8",
+          "169.254.0.0/16",
+          "172.16.0.0/12",
+          "192.168.0.0/16",
+          "::1/128",
+          "fc00::/7",
+          "fe80::/10"
         ],
         "outboundTag": "direct"
       }

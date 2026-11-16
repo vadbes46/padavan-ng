@@ -396,8 +396,8 @@ function change_vpnc_type() {
 	showhide_div('row_vpnc_singbox', is_sb);
 	showhide_div('row_vpnc_xray', is_xray);
 	showhide_div('vpnc_peer_row', !is_wg_family && !is_proxy_proto);
-	showhide_div('row_vpnc_exclude_network', is_wg_family);
-	showhide_div('row_vpnc_remote_network', is_wg_family);
+	showhide_div('row_vpnc_exclude_network', is_wg_family || is_proxy_proto);
+	showhide_div('row_vpnc_remote_network', is_wg_family || is_proxy_proto);
 
 	$("vpnc_use_dns").innerHTML = "<#VPNC_PDNS#>";
 	if (is_wg_family) $("vpnc_use_dns").innerHTML = "<#VPNC_WG_UseDNS#>";
@@ -583,14 +583,21 @@ function load_xray_template() {
 				"tag": "proxy", "protocol": "vless",
 				"settings": {
 					"vnext": [{
-						"address": "vadbes46.online", "port": 443,
-						"users": [{ "id": "a0f75ad5-0f7c-4740-bc72-d4d45b360562", "encryption": "none" }]
+						"address": "your.domain.com", "port": 443,
+						"users": [{ "id": "YOUR_UUID_HERE", "encryption": "none" }]
 					}]
 				},
 				"streamSettings": {
 					"network": "xhttp", "security": "tls",
-					"tlsSettings": { "serverName": "vadbes46.online", "fingerprint": "firefox" },
-					"xhttpSettings": { "path": "/ray-xhttp", "host": "vadbes46.online", "mode": "auto" }
+					"tlsSettings": { "serverName": "your.domain.com", "fingerprint": "chrome", "alpn": ["h2"] },
+					"xhttpSettings": {
+						"path": "/ray-xhttp", "host": "your.domain.com", "mode": "auto",
+						"xPaddingBytes": "100-1000",
+						"xmux": {
+							"maxConnections": "2-4", "cMaxReuseTimes": "64-128",
+							"hMaxRequestTimes": "800-1200", "hMaxReusableSecs": "1800-3000"
+						}
+					}
 				}
 			},
 			{ "tag": "direct", "protocol": "freedom" },
@@ -598,9 +605,40 @@ function load_xray_template() {
 		],
 		"routing": {
 			"domainStrategy": "AsIs",
-			"rules": [{ "type": "field", "ip": ["geoip:private"], "outboundTag": "direct" }]
+			"rules": [{
+				"type": "field",
+				"ip": [
+					"10.0.0.0/8", "100.64.0.0/10", "127.0.0.0/8", "169.254.0.0/16",
+					"172.16.0.0/12", "192.168.0.0/16", "::1/128", "fc00::/7", "fe80::/10"
+				],
+				"outboundTag": "direct"
+			}]
 		}
 	}, null, 2);
+}
+
+function json_conf_import(inputId, targetId) {
+	var fileInput = document.getElementById(inputId);
+	var ta = document.getElementById(targetId);
+	if (!fileInput || !ta || !fileInput.files || !fileInput.files[0])
+		return;
+	var file = fileInput.files[0];
+	if (file.size > 32768) {
+		alert("File is too big (max 32 KB)");
+		return;
+	}
+	var reader = new FileReader();
+	reader.onload = function(e) {
+		var content = (e.target.result || "").trim();
+		try {
+			JSON.parse(content);
+		} catch (err) {
+			alert("Invalid JSON syntax: " + err.message);
+			return;
+		}
+		ta.value = content;
+	};
+	reader.readAsText(file);
 }
 
 function ov_conf_import() {
@@ -1644,7 +1682,7 @@ function modal_editor_load_file(input) {
                                                             3. <#VPNC_USB_Hint_Step3#>
                                                         </div>
                                                         <span class="muted"><#VPNC_USB_Hint_Console#></span><br>
-                                                        <pre style="font-size: 11px; margin: 4px 0;">mkdir -p /media/*/sing-box && cd /media/*/sing-box && wget -q -O - https://github.com/SagerNet/sing-box/releases/download/v1.14.0/sing-box-1.14.0-linux-mipsle-softfloat.tar.gz | tar -zx --strip-components=1 && chmod +x sing-box</pre>
+                                                        <pre style="font-size: 11px; margin: 4px 0;">mkdir -p /media/*/sing-box && cd /media/*/sing-box && wget -q -O - https://github.com/SagerNet/sing-box/releases/download/v1.14.4/sing-box-1.14.4-linux-mipsle-softfloat.tar.gz | tar -zx --strip-components=1 && chmod +x sing-box</pre>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -1663,6 +1701,9 @@ function modal_editor_load_file(input) {
                                                     &nbsp;&nbsp;
                                                     <button type="button" class="btn btn-mini btn-info" onclick="load_sb_template('hy2');"><#VPNC_Load_Hy2_Template#></button>
                                                     <button type="button" class="btn btn-mini" onclick="load_sb_template('vless');">VLESS Template</button>
+                                                    &nbsp;
+                                                    <input type="file" id="sb_fileInput" accept=".json,application/json" style="display:none" onChange="json_conf_import('sb_fileInput','scripts.singbox_config.json');" onclick="this.value=''">
+                                                    <button type="button" class="btn btn-mini" onclick="document.getElementById('sb_fileInput').click();"><#VPNC_Import_JSON#></button>
                                                 </th>
                                             </tr>
                                             <tr>
@@ -1702,6 +1743,7 @@ function modal_editor_load_file(input) {
                                                     <select name="vpnc_xray_routing" class="input" style="width: 320px;">
                                                         <option value="0" <% nvram_match_x("", "vpnc_xray_routing", "0","selected"); %>><#VPNC_Proxy_Routing_ProxyOnly#></option>
                                                         <option value="1" <% nvram_match_x("", "vpnc_xray_routing", "1","selected"); %>><#VPNC_Proxy_Routing_Unblock#></option>
+                                                        <option value="2" <% nvram_match_x("", "vpnc_xray_routing", "2","selected"); %>><#VPNC_Proxy_Routing_Full_TCP#></option>
                                                     </select>
                                                 </td>
                                             </tr>
@@ -1710,6 +1752,9 @@ function modal_editor_load_file(input) {
                                                     <a href="javascript:spoiler_toggle('spoiler_xray_conf')"><span><#VPNC_XRAY_Config#></span> <i style="scale: 75%;" class="icon-chevron-down"></i></a>
                                                     &nbsp;&nbsp;
                                                     <button type="button" class="btn btn-mini btn-info" onclick="load_xray_template();"><#VPNC_Load_Vless_Template#></button>
+                                                    &nbsp;
+                                                    <input type="file" id="xray_fileInput" accept=".json,application/json" style="display:none" onChange="json_conf_import('xray_fileInput','scripts.xray_config.json');" onclick="this.value=''">
+                                                    <button type="button" class="btn btn-mini" onclick="document.getElementById('xray_fileInput').click();"><#VPNC_Import_JSON#></button>
                                                 </th>
                                             </tr>
                                             <tr>

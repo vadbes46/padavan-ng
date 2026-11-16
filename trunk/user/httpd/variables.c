@@ -716,9 +716,9 @@
 			{"vpnc_awg_i1", "", NULL, EVM_RESTART_VPNCLI},
 			{"vpnc_awg_hpk", "", NULL, EVM_RESTART_VPNCLI},
 			{"vpnc_awg_cpa", "", NULL, EVM_RESTART_VPNCLI},
+#endif
 			{"scripts.vpnc_remote_network.list", "File", NULL, EVM_RESTART_VPNCLI},
 			{"scripts.vpnc_exclude_network.list", "File", NULL, EVM_RESTART_VPNCLI},
-#endif
 			{"vpnc_sb_routing", "", NULL, EVM_RESTART_VPNCLI},
 			{"scripts.singbox_config.json", "File", NULL, EVM_RESTART_VPNCLI},
 			{"vpnc_xray_routing", "", NULL, EVM_RESTART_VPNCLI},

@@ -755,6 +755,16 @@ get_tcp_mss_ifname_vpnc(int vpnc_type)
 		return IFNAME_CLIENT_WG;
 	else
 #endif
+#if defined (APP_SINGBOX)
+	if (vpnc_type == 5)
+		return IFNAME_CLIENT_TUN;
+	else
+#endif
+#if defined (APP_XRAY)
+	if (vpnc_type == 6)
+		return NULL;
+	else
+#endif
 		return IFNAME_CLIENT_PPP;
 }
 
@@ -829,6 +839,16 @@ ipt_filter_rules(char *man_if, char *wan_if, char *lan_if, char *lan_ip,
 #if defined (APP_WIREGUARD) || defined (APP_AMNEZIAWG)
 		if (is_vpnc_wg_like_type(i_vpnc_type)) {
 			vpnc_if = IFNAME_CLIENT_WG;
+		} else
+#endif
+#if defined (APP_SINGBOX)
+		if (i_vpnc_type == 5) {
+			vpnc_if = IFNAME_CLIENT_TUN;
+		} else
+#endif
+#if defined (APP_XRAY)
+		if (i_vpnc_type == 6) {
+			vpnc_if = NULL;
 		} else
 #endif
 			vpnc_if = IFNAME_CLIENT_PPP;
@@ -1807,6 +1827,16 @@ ipt_nat_rules(char *man_if, char *man_ip,
 				vpnc_if = IFNAME_CLIENT_TAP;
 		} else
 #endif
+#if defined (APP_SINGBOX)
+		if (i_vpnc_type == 5) {
+			vpnc_if = IFNAME_CLIENT_TUN;
+		} else
+#endif
+#if defined (APP_XRAY)
+		if (i_vpnc_type == 6) {
+			vpnc_if = NULL;
+		} else
+#endif
 			vpnc_if = IFNAME_CLIENT_PPP;
 	}
 
@@ -2079,6 +2109,9 @@ ipt_nat_rules(char *man_if, char *man_ip,
 					}
 				} else
 #endif
+				if (i_vpnc_type == 5 || i_vpnc_type == 6) {
+					/* Sing-box / Xray: outbound-only client, no PPP DMZ mask */
+				} else
 				if (i_vpnc_type == 1) {
 					/* L2TP */
 					vpn_proto_mask |= 0x02;
@@ -2288,6 +2321,22 @@ start_firewall_ex(void)
 
 	if (check_if_file_exist(opt_iptables_script))
 		doSystem("%s update", opt_iptables_script);
+
+	if (!get_ap_mode() && nvram_match("vpnc_enable", "1")) {
+		int i_vpnc_type = nvram_get_int("vpnc_type");
+#if defined(APP_SINGBOX)
+		if (i_vpnc_type == 5) {
+			if (doSystem("/usr/bin/sing-box.sh %s", "firewall") != 0)
+				doSystem("sh -c 'for s in /media/*/sing-box/sing-box.sh /media/*/*/sing-box/sing-box.sh; do [ -x \"$s\" ] && exec \"$s\" firewall; done' 2>/dev/null");
+		}
+#endif
+#if defined(APP_XRAY)
+		if (i_vpnc_type == 6) {
+			if (doSystem("/usr/bin/xray.sh %s", "firewall") != 0)
+				doSystem("sh -c 'for s in /media/*/xray/xray.sh /media/*/*/xray/xray.sh; do [ -x \"$s\" ] && exec \"$s\" firewall; done' 2>/dev/null");
+		}
+#endif
+	}
 
 	/* enable IPv4 forward */
 	set_ipv4_forward(1);

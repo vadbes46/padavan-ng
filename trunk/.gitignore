@@ -83,6 +83,8 @@ user/sing-box/sing-box-*/
 user/sing-box/*.tar.gz
 user/sing-box/out/
 user/xray/xray
+user/xray/.xray_version
+user/xray/*.zip
 user/xray/src/
 user/xray/out/
 user/xray/*.dat

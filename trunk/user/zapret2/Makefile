@@ -1,4 +1,4 @@
-SRC_VER = 1.0.5.1
+SRC_VER = 1.0.7
 SRC_NAME = zapret2-v$(SRC_VER)
 SRC_ARCHIVE = zapret2-$(SRC_VER).tar.gz
 SRC_URL = https://github.com/bol-van/zapret2/releases/download/v$(SRC_VER)/zapret2-v$(SRC_VER).tar.gz

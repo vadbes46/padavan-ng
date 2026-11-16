@@ -1,4 +1,4 @@
-SRC_VER = 1.14.0
+SRC_VER = 1.14.4
 SRC_NAME = sing-box-$(SRC_VER)-linux-mipsle-softfloat
 SRC_ARCHIVE = $(SRC_NAME).tar.gz
 SRC_URL = https://github.com/SagerNet/sing-box/releases/download/v$(SRC_VER)/$(SRC_ARCHIVE)
